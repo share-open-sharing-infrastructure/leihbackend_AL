@@ -170,9 +170,66 @@ describe('Rentals', () => {
                 })
                 await assert.isRejected(rentalPromise)
             } finally {
-                await client
-                    .collection('item')
-                    .update(item1.id, { status: 'instock' }) // clean up
+                await client.collection('item').update(item1.id, { status: 'instock' }) // clean up
+            }
+        })
+
+        it('should allow to rent an item reserved by target customer', async () => {
+            let reservation = await client.collection('reservation').create({
+                customer_email: customer1.email,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+            assert.isNotNull(reservation)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'reserved')
+
+            let rental = await client.collection('rental').create({
+                customer: customer1.id,
+                items: [item1.id],
+                rented_on: new Date(),
+                requested_copies: {
+                    [item1.id]: 3,  // item has 3 copies available (4 total, one rented by jane)
+                },
+            })
+            assert.isNotNull(rental)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'outofstock') // item has 4 copies total -> still in stock after renting one
+
+            await client.collection('rental').delete(rental.id)
+            await client.collection('reservation').delete(reservation.id)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'instock')
+        })
+
+        it('should fail when trying to rent an item reserved by someone else', async () => {
+            let reservation = await client.collection('reservation').create({
+                customer_email: 'someoneelse@leihlokal-ka.de',
+                customer_name: 'Someone Else',
+                customer_phone: '0123456789',
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+            assert.isNotNull(reservation)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'reserved')
+
+            try {
+                const rentalPromise = client.collection('rental').create({
+                    customer: customer1.id,
+                    items: [item1.id],
+                    rented_on: new Date(),
+                    requested_copies: {
+                        [item1.id]: 1,
+                    },
+                })
+                await assert.isRejected(rentalPromise)
+            } finally {
+                await client.collection('reservation').delete(reservation.id)
             }
         })
 
@@ -198,9 +255,7 @@ describe('Rentals', () => {
             item1 = await client.collection('item').getOne(item1.id)
             assert.equal(item1.status, 'repairing')
 
-            await client
-                .collection('item')
-                .update(item1.id, { status: 'instock' }) // clean up
+            await client.collection('item').update(item1.id, { status: 'instock' }) // clean up
         })
 
         it('should not update item status if rental properties edited', async () => {
