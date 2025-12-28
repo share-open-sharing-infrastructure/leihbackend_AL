@@ -33,7 +33,6 @@ onRecordCreateRequest((e) => {
             'collectionId',
             'collectionName',
             'updated',
-            'otp',
             'on_premises',
             'expand',
         )

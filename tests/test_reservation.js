@@ -69,9 +69,9 @@ describe('Reservations', () => {
                 'collectionId',
                 'collectionName',
                 'updated',
-                'otp',
                 'on_premises',
                 'expand',])
+            assert.doesNotHaveAllKeys(reservation, ['otp'])
 
             reservation = await client.collection('reservation').getOne(reservation.id)
             assert.equal(reservation.customer_name, `${customer1.firstname} ${customer1.lastname}`) // auto-fill
