@@ -140,18 +140,40 @@ describe('Reservations', () => {
             assert.equal(item1.status, 'instock')
         })
 
+        it('should autofill customer info', async () => {
+            let reservation = await anonymousClient.collection('reservation').create({
+                customer_email: customer1.email,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+
+            reservation = await client.collection('reservation').getOne(reservation.id)
+            assert.equal(reservation.customer_email, customer1.email)
+            assert.equal(reservation.customer_name, `${customer1.firstname} ${customer1.lastname}`)
+            assert.equal(reservation.customer_phone, customer1.phone)
+            assert.equal(reservation.customer_iid, customer1.iid)
+
+            await client.collection('reservation').delete(reservation.id)
+        })
+
         it('should not autofill customer info for non-unique email', async () => {
             const emailCustomer2 = customer2.email
             await client.collection('customer').update(customer2.id, { email: customer1.email })
 
-            let promise = anonymousClient.collection('reservation').create({
-                customer_email: 'johndoe@leihlokal-ka.de',
+            let reservation = await anonymousClient.collection('reservation').create({
+                customer_email: 'johndoe@leihlokal-ka.de',  // customer 1 email
                 items: [item1.id],
                 pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
             })
-            await assert.isRejected(promise)
+
+            reservation = await client.collection('reservation').getOne(reservation.id)
+            assert.equal(reservation.customer_email, customer1.email)
+            assert.isEmpty(reservation.customer_name)  // not required anymore
+            assert.isEmpty(reservation.customer_phone)
+            assert.equal(reservation.customer_iid, 0)
 
             await client.collection('customer').update(customer2.id, { email: emailCustomer2 })
+            await client.collection('reservation').delete(reservation.id)
         })
 
         it('should create a reservation for a new customer', async () => {
