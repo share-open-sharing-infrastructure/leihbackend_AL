@@ -14,6 +14,16 @@ const { handleGetCustomersCsv } = require(`${__hooks}/routes/customer`)
 // Record hooks
 // ----- //
 
+onRecordCreateExecute((e) => {
+    e.record.set('email', e.record.getString('email')?.toLowerCase())
+    e.next()
+}, 'customer')
+
+onRecordUpdateExecute((e) => {
+    e.record.set('email', e.record.getString('email')?.toLowerCase())
+    e.next()
+}, 'customer')
+
 onRecordAfterCreateSuccess((e) => {
     const { NO_WELCOME } = require(`${__hooks}/constants.js`)
     const { sendWelcomeMail } = require(`${__hooks}/services/customer.js`)
@@ -35,10 +45,10 @@ routerAdd('get', '/api/customer/csv', handleGetCustomersCsv, $apis.requireSuperu
 // ----- //
 
 // note: cron dates are UTC
-cronAdd('run_customer_deletion', "30 8 * * *", () => {
+cronAdd('run_customer_deletion', '30 8 * * *', () => {
     const { NO_DELETE_INACTIVE } = require(`${__hooks}/constants.js`)
     if (NO_DELETE_INACTIVE) return
-    
+
     const { runDeleteInactive } = require(`${__hooks}/jobs/customer.js`)
     runDeleteInactive()
 })

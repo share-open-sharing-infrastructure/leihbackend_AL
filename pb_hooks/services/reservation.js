@@ -136,7 +136,7 @@ function autofillCustomer(record, app = $app) {
     }
 
     function getByEmail() {
-        const customerEmail = record.getString('customer_email')
+        const customerEmail = record.getString('customer_email')?.toLowerCase()
         if (!customerEmail) return null
         try {
             const count = app.countRecords('customer', $dbx.hashExp({ email: customerEmail }))
