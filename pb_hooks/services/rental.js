@@ -177,7 +177,7 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
             .findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
             .filter((r) => isUpdate || r.id !== rental.id) // exclude self for new rentals (record already exists at this point)
             .map((r) => JSON.parse(r.getRaw('requested_copies')))
-            .map((rc) => (rc ? rc[itemId] : 1)) // 1 for legacy support
+            .map((rc) => (rc && rc[itemId]) || 1) // 1 for legacy support // EMERGENCY CHANGE PLEASE VERIFY: fixed NaN when itemId not in requested_copies
             .reduce((acc, count) => acc + count, 0)
         // For simplicity, we currently don't consider the number of copies for reservations.
         // If an item is reserved, we implicitly assume all copies of it to be served, otherwise things get confusing
