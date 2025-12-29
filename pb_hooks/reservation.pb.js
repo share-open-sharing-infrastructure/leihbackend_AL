@@ -69,6 +69,7 @@ onRecordCreateExecute((e) => {
 
     wrapTransactional(e, (e) => {
         e.next()
+        e.app.logger().info(`Created new reservation ${e.record.id} for ${e.record.getString('customer_email')}`)
         updateItems(e.record, null, false, e.app)
     })
 }, 'reservation')
@@ -82,6 +83,8 @@ onRecordUpdateExecute((e) => {
 
         e.next()
 
+        e.app.logger().info(`Updated reservation ${e.record.id} of ${e.record.getString('customer_email')}`)
+
         // Note: "undoing" a closed transaction will not update item statuses accordingly.
         // Instead, undoing should be prevented beforehand on a request level
         updateItems(e.record, oldRecord, false, e.app)
@@ -94,7 +97,9 @@ onRecordDeleteExecute((e) => {
     const { updateItems } = require(`${__hooks}/services/reservation.js`)
 
     wrapTransactional(e, (e) => {
+        const customerEmail = e.record.getString('customer_email')
         e.next()
+        e.app.logger().info(`Deleted reservation ${e.record.id} of ${customerEmail}`)
         updateItems(e.record, null, true, e.app)
     })
 }, 'reservation')

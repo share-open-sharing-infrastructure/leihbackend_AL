@@ -21,6 +21,10 @@ onRecordCreateExecute((e) => {
     wrapTransactional(e, (e) => {
         if (!IMPORT_MODE) validate(e.record)
         e.next()
+
+        const customer = e.app.findRecordById('customer', e.record.getString('customer'))
+        e.app.logger().info(`Created rental ${e.record.id} for customer ${customer.getInt('iid')}.`)
+
         if (!IMPORT_MODE) updateItems(e.record, null, false, e.app)
     })
 }, 'rental')
@@ -32,8 +36,12 @@ onRecordUpdateExecute((e) => {
 
     wrapTransactional(e, (e) => {
         // TODO: validate status of potentially newly added items
-        const oldRecord = $app.findRecordById('rental', e.record.id)
+        const oldRecord = e.app.findRecordById('rental', e.record.id)
         e.next()
+
+        const customer = e.app.findRecordById('customer', e.record.getString('customer'))
+        e.app.logger().info(`Updated rental ${e.record.id} of customer ${customer.getInt('iid')}.`)
+
         if (!IMPORT_MODE) updateItems(e.record, oldRecord, false, e.app)
     })
 
@@ -45,8 +53,13 @@ onRecordDeleteExecute((e) => {
     const { updateItems } = require(`${__hooks}/services/rental.js`)
 
     wrapTransactional(e, (e) => {
-        const oldRecord = $app.findRecordById('rental', e.record.id)
+        const oldRecord = e.app.findRecordById('rental', e.record.id)
+        const customer = e.app.findRecordById('customer', e.record.getString('customer'))
+
         e.next()
+
+        e.app.logger().info(`Deleted rental ${e.record.id} of customer ${customer.getInt('iid')}.`)
+
         if (!IMPORT_MODE) updateItems(e.record, oldRecord, true, e.app)
     })
 }, 'rental')
