@@ -54,11 +54,15 @@ onRecordDeleteExecute((e) => {
 
     wrapTransactional(e, (e) => {
         const oldRecord = e.app.findRecordById('rental', e.record.id)
-        const customer = e.app.findRecordById('customer', e.record.getString('customer'))
+
+        let customerIdentity = e.record.getString('customer')
+        try {
+            customerIdentity = e.app.findRecordById('customer', e.record.getString('customer')).getInt('iid')
+        } catch (e) { /* e.g. in cascade customer deletion cascades to rental deletion (-> customer not existing anymore) */ }
 
         e.next()
 
-        e.app.logger().info(`Deleted rental ${e.record.id} of customer ${customer.getInt('iid')}.`)
+        e.app.logger().info(`Deleted rental ${e.record.id} of customer ${customerIdentity}.`)
 
         if (!IMPORT_MODE) updateItems(e.record, oldRecord, true, e.app)
     })
