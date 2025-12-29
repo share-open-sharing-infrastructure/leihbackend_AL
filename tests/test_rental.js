@@ -92,6 +92,21 @@ describe('Rentals', () => {
             await client.collection('rental').delete(rental.id)
         })
 
+        it('should not mandatorily require requested copies to be set', async () => {
+            let rental = await client.collection('rental').create({
+                customer: customer1.id,
+                items: [item1.id],
+                rented_on: new Date(),
+                requested_copies: { "foo": "bar" },
+            })
+            assert.isNotNull(rental)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'instock') // item has 4 copies total -> still in stock after renting one
+
+            await client.collection('rental').delete(rental.id)
+        })
+
         it('should mark item as outofstock when all available copies are rented', async () => {
             let rental = await client.collection('rental').create({
                 customer: customer1.id,
@@ -144,6 +159,38 @@ describe('Rentals', () => {
         it('should allow to rent an item reserved by target customer', async () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: customer1.email,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+            assert.isNotNull(reservation)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'reserved')
+
+            let rental = await client.collection('rental').create({
+                customer: customer1.id,
+                items: [item1.id],
+                rented_on: new Date(),
+                requested_copies: {
+                    [item1.id]: 3, // item has 3 copies available (4 total, one rented by jane)
+                },
+            })
+            assert.isNotNull(rental)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'outofstock') // item has 4 copies total -> still in stock after renting one
+
+            await client.collection('rental').delete(rental.id)
+            await client.collection('reservation').delete(reservation.id)
+
+            item1 = await client.collection('item').getOne(item1.id)
+            assert.equal(item1.status, 'instock')
+        })
+
+        it('should allow to rent an item reserved by new customer', async () => {
+            let reservation = await client.collection('reservation').create({
+                customer_email: "somenewcustomer@leihlokal-ka.de",
+                is_new_customer: true,
                 items: [item1.id],
                 pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
             })

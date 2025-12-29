@@ -110,10 +110,11 @@ function validateStatus(rental, app = $app) {
         } catch (e) { }
 
         const isSameCustomer = isReserved && reservation && reservation.getString('customer_email').toLowerCase() === customer.getString('email').toLowerCase()
-        // EMERGENCY CHANGE PLEASE VERIFY: bypass customer check if reservation was made for a new customer
         const isNewCustomerReservation = isReserved && reservation && reservation.getBool('is_new_customer')
 
-        // EMERGENCY CHANGE PLEASE VERIFY: allow rental if item is instock, OR if reserved and (same customer OR new customer reservation)
+        // Allow rental if item is instock, OR if reserved by either the same customer or a new customer reservation.
+        // For reservations by new customers, we skip the status check for convenience.
+        // Reason is, we encountered the case where a customer is not in fact new but instead already registered but with a different email.
         if (isInstock || (isReserved && (isSameCustomer || isNewCustomerReservation))) {
             const numTotal = item.getInt('copies')
             const numAvailable = numTotal - countCopiesActiveByItem(item)
@@ -132,6 +133,7 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
     // TODO: handle (or forbid) the case where a rental is returned and it's item list is updated at the same time (currently unhandled)
     // TODO: handle "partially" returned rentals (see `returned_items` field (https://github.com/leih-lokal/leihbackend/issues/4)
 
+    const { tryParseJson } = require(`${__hooks}/utils/common.js`)
     const itemService = require(`${__hooks}/services/item.js`)
     const reservationService = require(`${__hooks}/services/reservation.js`)
 
@@ -169,15 +171,14 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         const numTotal = item.getInt('copies')
         const numRequested = itemCountsDiff[itemId]
 
-        // EMERGENCY CHANGE PLEASE VERIFY: we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
-        // EMERGENCY CHANGE PLEASE VERIFY: skip status check if item was already in this rental and we're not adding more copies (e.g., just extending dates)
-        if (numRequested > 0 && !isUpdate && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
+        // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
+        if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
         const numRented = app
             .findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
             .filter((r) => isUpdate || r.id !== rental.id) // exclude self for new rentals (record already exists at this point)
-            .map((r) => JSON.parse(r.getRaw('requested_copies')))
-            .map((rc) => (rc && rc[itemId]) || 1) // 1 for legacy support // EMERGENCY CHANGE PLEASE VERIFY: fixed NaN when itemId not in requested_copies
+            .map((r) => tryParseJson(r.getRaw('requested_copies')))
+            .map((rc) => (rc && !isNaN(rc[itemId])) ? rc[itemId] : 1) // 1 for legacy support
             .reduce((acc, count) => acc + count, 0)
         // For simplicity, we currently don't consider the number of copies for reservations.
         // If an item is reserved, we implicitly assume all copies of it to be served, otherwise things get confusing
@@ -202,8 +203,7 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
             app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
             itemService.setStatus(item, status, app)
         } else {
-            // EMERGENCY CHANGE PLEASE VERIFY: added debug info to error message
-            throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state (numTotal=${numTotal}, numRented=${numRented}, numAvailable=${numAvailable}, numRequested=${numRequested}, numRemaining=${numRemaining}, isUpdate=${isUpdate}, itemStatus=${itemStatus})`)
+            throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state`)
         }
     })
 }

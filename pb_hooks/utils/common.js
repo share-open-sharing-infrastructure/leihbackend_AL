@@ -15,7 +15,16 @@ function uniqueBy(arr, keyFn) {
     })
 }
 
+function tryParseJson(str, fallback = null) {
+    try {
+        return JSON.parse(str)
+    } catch(e) {
+        return fallback
+    }
+}
+
 module.exports = {
     fmtDateTime,
     uniqueBy,
+    tryParseJson,
 }
