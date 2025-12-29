@@ -202,7 +202,8 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
             app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
             itemService.setStatus(item, status, app)
         } else {
-            throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state`)
+            // EMERGENCY CHANGE PLEASE VERIFY: added debug info to error message
+            throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state (numTotal=${numTotal}, numRented=${numRented}, numAvailable=${numAvailable}, numRequested=${numRequested}, numRemaining=${numRemaining}, isUpdate=${isUpdate}, itemStatus=${itemStatus})`)
         }
     })
 }
