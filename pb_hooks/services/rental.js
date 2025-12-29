@@ -100,22 +100,28 @@ function validateStatus(rental, app = $app) {
     const requestedCopies = JSON.parse(rental.getRaw('requested_copies'))
 
     for (const item of items) {
-        const isInstock = item.getString('status') === 'instock'
-        const isReserved = item.getString('status') === 'reserved'
+        const itemStatus = item.getString('status')
+        const isInstock = itemStatus === 'instock'
+        const isReserved = itemStatus === 'reserved'
 
         let reservation = null
         try {
             if (isReserved) reservation = app.findFirstRecordByFilter('reservation', 'items ~ {:itemId}', { itemId: item.id })  // try to find reservation by item id
         } catch (e) { }
 
-        if (isInstock || (isReserved && reservation && reservation.getString('customer_email').toLowerCase() === customer.getString('email').toLowerCase())) {
+        const isSameCustomer = isReserved && reservation && reservation.getString('customer_email').toLowerCase() === customer.getString('email').toLowerCase()
+        // EMERGENCY CHANGE PLEASE VERIFY: bypass customer check if reservation was made for a new customer
+        const isNewCustomerReservation = isReserved && reservation && reservation.getBool('is_new_customer')
+
+        // EMERGENCY CHANGE PLEASE VERIFY: allow rental if item is instock, OR if reserved and (same customer OR new customer reservation)
+        if (isInstock || (isReserved && (isSameCustomer || isNewCustomerReservation))) {
             const numTotal = item.getInt('copies')
             const numAvailable = numTotal - countCopiesActiveByItem(item)
             const numRequested = requestedCopies && item.id in requestedCopies ? requestedCopies[item.id] : 1 // backwards compatibility
             if (numRequested > numAvailable) throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
         }
         else {
-            throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
+            throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental (status: ${itemStatus}).`)
         }
     }
 }
@@ -163,8 +169,9 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         const numTotal = item.getInt('copies')
         const numRequested = itemCountsDiff[itemId]
 
-        // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer of this new rental
-        if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
+        // EMERGENCY CHANGE PLEASE VERIFY: we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
+        // EMERGENCY CHANGE PLEASE VERIFY: skip status check if item was already in this rental and we're not adding more copies (e.g., just extending dates)
+        if (numRequested > 0 && !isUpdate && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
         const numRented = app
             .findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
