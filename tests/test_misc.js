@@ -13,6 +13,7 @@ describe('Misc', () => {
 
     let item1
     let customer1
+    let customer2
 
     before(async () => {
         client = await getClient()
@@ -31,6 +32,7 @@ describe('Misc', () => {
     beforeEach(async () => {
         item1 = await client.collection('item').getFirstListItem('iid=1000') // apple pie
         customer1 = await client.collection('customer').getFirstListItem('iid=1000') // john
+        customer2 = await client.collection('customer').getFirstListItem('iid=1001') // jane
     })
 
     afterEach(async () => {
@@ -52,9 +54,19 @@ describe('Misc', () => {
             })
             assert.isNotNull(rental)
 
+            let reservation = await client.collection('reservation').create({
+                customer_iid: customer2.id,
+                customer_email: customer2.email,
+                items: [item1.id],
+                pickup: now,
+            })
+            assert.isNotNull(rental)
+
+            await purgeInbox(imapClient)
+
             const response = await client.send('/api/misc/emergency_closing', { method: 'post' })
             assert.deepEqual(response, {
-                successful: 1,
+                successful: 2,
                 failed: 0,
             })
 
@@ -62,12 +74,18 @@ describe('Misc', () => {
             assert.deepEqual(new Date(rental.expected_on), now) // updating the return date not implemented, yet
 
             const messages = await listInbox(imapClient)
-            assert.lengthOf(messages, 1)
+            assert.lengthOf(messages, 2)
             assert.equal(messages[0].sender, USERNAME)
+            assert.equal(messages[1].sender, USERNAME)
             assert.equal(messages[0].subject, '[leih.lokal] Heute außerplanmäßig geschlossen!')
-            assert.deepEqual(messages[0].recipients, [customer1.email])
+            assert.equal(messages[1].subject, '[leih.lokal] Heute außerplanmäßig geschlossen!')
+            assert.deepEqual(
+                messages.map(m => m.recipients[0]).toSorted(),
+                [customer1.email, customer2.email].toSorted()
+            )
 
             await client.collection('rental').delete(rental.id)
+            await client.collection('reservation').delete(reservation.id)
         })
     })
 

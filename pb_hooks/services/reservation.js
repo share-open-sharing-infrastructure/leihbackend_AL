@@ -11,6 +11,14 @@ function countActiveByItem(itemId, app = $app) {
     return result.cnt
 }
 
+function getTodaysReservations(app = $app) {
+    const records = app.findAllRecords('reservation',
+        $dbx.exp('substr(pickup, 0, 11) = current_date'),
+        $dbx.hashExp({ done: false })
+    )
+    return records
+}
+
 function remove(r, app = $app) {
     app.delete(r)
     app.logger().info(`Deleted reservation ${r.id} (${r.getString('iid')}).`)
@@ -70,10 +78,10 @@ function exportCsv(app = $app) {
 
 // Validation
 
-function validate(r) {
+function validate(r, skipPickup = false) {
     validateFields(r)
     validateStatus(r)
-    validatePickup(r)
+    if (!skipPickup) validatePickup(r)
 }
 
 function validateFields(r) {
@@ -283,4 +291,5 @@ module.exports = {
     autofillCustomer,
     updateItems,
     countActiveByItem,
+    getTodaysReservations,
 }

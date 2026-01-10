@@ -39,7 +39,7 @@ onRecordCreateRequest((e) => {
     }
 
     autofillCustomer(e.record)
-    validate(e.record)
+    validate(e.record, !!e.requestEvent.auth)  // ignore invalid pickup dates for superuser requests
 
     e.next()
 
