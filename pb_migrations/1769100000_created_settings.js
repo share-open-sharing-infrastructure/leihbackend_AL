@@ -1,8 +1,8 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
   const collection = new Collection({
-    "createRule": null,
-    "deleteRule": null,
+    "createRule": "@request.auth.id != \"\"",
+    "deleteRule": "@request.auth.id != \"\"",
     "fields": [
       {
         "autogeneratePattern": "[a-z0-9]{15}",
@@ -50,10 +50,11 @@ migrate((app) => {
         "hidden": false,
         "id": "file4829371056",
         "maxSelect": 1,
-        "maxSize": 0,
+        "maxSize": 2097152,
         "mimeTypes": [
           "image/png",
-          "image/svg+xml"
+          "image/svg+xml",
+          "image/jpeg"
         ],
         "name": "logo",
         "presentable": false,
@@ -67,7 +68,7 @@ migrate((app) => {
         "hidden": false,
         "id": "file5938271640",
         "maxSelect": 1,
-        "maxSize": 0,
+        "maxSize": 2097152,
         "mimeTypes": [
           "image/png",
           "image/svg+xml",
@@ -186,12 +187,12 @@ migrate((app) => {
     ],
     "id": "pbc_settings_001",
     "indexes": [],
-    "listRule": null,
+    "listRule": "",
     "name": "settings",
     "system": false,
     "type": "base",
-    "updateRule": null,
-    "viewRule": null
+    "updateRule": "@request.auth.id != \"\"",
+    "viewRule": ""
   });
 
   return app.save(collection);
