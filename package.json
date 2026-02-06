@@ -1,5 +1,6 @@
 {
   "name": "leihbackend",
+  "version": "1.0.0",
   "prettier": {
     "tabWidth": 4,
     "semi": false,
