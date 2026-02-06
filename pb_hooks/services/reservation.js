@@ -116,7 +116,7 @@ function validateProtected(r) {
 
     const protectedItems = r
         .expandedAll('items')
-        .filter(i => item.getBool('is_protected'))
+        .filter(i => i.getBool('is_protected'))
         .map(i => i.getInt('iid'))
 
     if (protectedItems.length) {
