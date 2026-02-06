@@ -78,10 +78,11 @@ function exportCsv(app = $app) {
 
 // Validation
 
-function validate(r, skipPickup = false) {
+function validate(r, force = false) {
     validateFields(r)
     validateStatus(r)
-    if (!skipPickup) validatePickup(r)
+    if (!force) validateProtected(r)
+    if (!force) validatePickup(r)
 }
 
 function validateFields(r) {
@@ -104,8 +105,22 @@ function validateStatus(r) {
         .expandedAll('items')
         .filter(isUnavailable)
         .map((i) => i.getInt('iid'))
+
     if (unavailableItems.length) {
         throw new BadRequestError(`Items ${unavailableItems} not available.`)
+    }
+}
+
+function validateProtected(r) {
+    $app.expandRecord(r, ['items'], null)
+
+    const protectedItems = r
+        .expandedAll('items')
+        .filter(i => item.getBool('is_protected'))
+        .map(i => i.getInt('iid'))
+
+    if (protectedItems.length) {
+        throw new BadRequestError(`Items ${protectedItems} cannot be reserved.`)
     }
 }
 

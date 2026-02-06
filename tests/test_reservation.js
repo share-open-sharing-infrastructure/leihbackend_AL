@@ -234,6 +234,27 @@ describe('Reservations', () => {
             await assert.isRejected(reservationPromise)
             assert.isEmpty(await listInbox(imapClient))
         })
+
+        it.only('should fail when reserving a protected item as anonymous user but succeed as superuser', async () => {
+            await client.collection('item').update(item1.id, { is_protected: true })
+
+            let reservationPromise = anonymousClient.collection('reservation').create({
+                customer_iid: 1000,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+            await assert.isRejected(reservationPromise)
+
+            let reservation = await client.collection('reservation').create({
+                customer_iid: 1000,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+            })
+            assert.isNotNull(reservation)
+
+            await client.collection('reservation').delete(reservation.id)
+            await client.collection('item').update(item1.id, { is_protected: false })
+        })
     })
 
     describe('Status', () => {
