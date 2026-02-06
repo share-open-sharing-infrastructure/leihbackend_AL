@@ -25,7 +25,10 @@ rm CHANGELOG* LICENSE* *.zip
 
 ### Docker / Podman
 ```bash
-# Build the image
+# Option 1: pull official image
+docker pull ghcr.io/leih-lokal/leihbackend:latest
+
+# Option 2: Build own image
 docker build -f Containerfile -t leihbackend:latest .
 
 # Create persistent volume
