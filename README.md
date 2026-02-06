@@ -2,7 +2,8 @@
 
 leih.lokal Karlsruhe management system. Succesor of [LeihLokalVerwaltung](https://github.com/leih-lokal/LeihLokalVerwaltung). Built with [PocketBase](https://pocketbase.io) as a backend.
 
-## Setup
+## Run
+### Local
 1. Download Pocketbase
 ```bash
 wget https://github.com/pocketbase/pocketbase/releases/download/v0.34.0/pocketbase_0.34.0_linux_amd64.zip
@@ -21,6 +22,23 @@ rm CHANGELOG* LICENSE* *.zip
 ```
 
 4. Create admin account at http://localhost:8090/_/ (if none existing yet).
+
+### Docker / Podman
+```bash
+# Build the image
+docker build -f Containerfile -t leihbackend:latest .
+
+# Create persistent volume
+docker volume create leihbackend_data
+
+# Run the container
+docker run -d \
+    --name leihbackend \
+    -p 8090:8090 \
+    -v leihbackend_data:/pb/pb_data \
+    -e DRY_MODE=false \
+    leihbackend:latest
+```
 
 ## Configuration
 ### Custom environment variables
