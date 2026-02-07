@@ -235,7 +235,7 @@ describe('Reservations', () => {
             assert.isEmpty(await listInbox(imapClient))
         })
 
-        it.only('should fail when reserving a protected item as anonymous user but succeed as superuser', async () => {
+        it('should fail when reserving a protected item as anonymous user but succeed as superuser', async () => {
             await client.collection('item').update(item1.id, { is_protected: true })
 
             let reservationPromise = anonymousClient.collection('reservation').create({
