@@ -1,8 +1,8 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
   const collection = new Collection({
-    "createRule": "@request.auth.id != \"\"",
-    "deleteRule": "@request.auth.id != \"\"",
+    "createRule": null,
+    "deleteRule": null,
     "fields": [
       {
         "autogeneratePattern": "[a-z0-9]{15}",
@@ -19,100 +19,52 @@ migrate((app) => {
         "type": "text"
       },
       {
-        "autogeneratePattern": "",
+        "cascadeDelete": false,
+        "collectionId": "pbc_940982958",
         "hidden": false,
-        "id": "text1847291650",
-        "max": 0,
-        "min": 0,
-        "name": "app_name",
-        "pattern": "",
-        "presentable": true,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "autogeneratePattern": "",
-        "hidden": false,
-        "id": "text2938475610",
-        "max": 0,
-        "min": 0,
-        "name": "tagline",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "hidden": false,
-        "id": "file4829371056",
+        "id": "relation_booking_item",
         "maxSelect": 1,
-        "maxSize": 2097152,
-        "mimeTypes": [
-          "image/png",
-          "image/svg+xml",
-          "image/jpeg"
-        ],
-        "name": "logo",
+        "minSelect": 1,
+        "name": "item",
         "presentable": false,
-        "protected": false,
-        "required": false,
+        "required": true,
         "system": false,
-        "thumbs": [],
-        "type": "file"
+        "type": "relation"
       },
       {
+        "cascadeDelete": false,
+        "collectionId": "pbc_108570809",
         "hidden": false,
-        "id": "file5938271640",
+        "id": "relation_booking_customer",
         "maxSelect": 1,
-        "maxSize": 2097152,
-        "mimeTypes": [
-          "image/png",
-          "image/svg+xml",
-          "image/x-icon",
-          "image/vnd.microsoft.icon"
-        ],
-        "name": "favicon",
+        "minSelect": 0,
+        "name": "customer",
         "presentable": false,
-        "protected": false,
         "required": false,
         "system": false,
-        "thumbs": [],
-        "type": "file"
+        "type": "relation"
       },
       {
         "autogeneratePattern": "",
         "hidden": false,
-        "id": "text6019384752",
+        "id": "text_booking_customer_name",
         "max": 0,
         "min": 0,
-        "name": "copyright_holder",
+        "name": "customer_name",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
-        "required": false,
+        "required": true,
         "system": false,
         "type": "text"
       },
       {
-        "hidden": false,
-        "id": "bool7120495863",
-        "name": "show_powered_by",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "bool"
-      },
-      {
         "autogeneratePattern": "",
         "hidden": false,
-        "id": "text8231506974",
+        "id": "text_booking_customer_phone",
         "max": 0,
         "min": 0,
-        "name": "primary_color",
+        "name": "customer_phone",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
@@ -123,46 +75,68 @@ migrate((app) => {
       {
         "autogeneratePattern": "",
         "hidden": false,
-        "id": "text9342618085",
+        "id": "email_booking_customer_email",
         "max": 0,
         "min": 0,
-        "name": "id_format",
+        "name": "customer_email",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "email"
+      },
+      {
+        "hidden": false,
+        "id": "date_booking_start",
+        "max": "",
+        "min": "",
+        "name": "start_date",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "date_booking_end",
+        "max": "",
+        "min": "",
+        "name": "end_date",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "hidden": false,
+        "id": "select_booking_status",
+        "maxSelect": 1,
+        "name": "status",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "select",
+        "values": [
+          "reserved",
+          "active",
+          "returned",
+          "overdue"
+        ]
+      },
+      {
+        "autogeneratePattern": "",
+        "hidden": false,
+        "id": "text_booking_notes",
+        "max": 0,
+        "min": 0,
+        "name": "notes",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
         "required": false,
         "system": false,
         "type": "text"
-      },
-      {
-        "hidden": false,
-        "id": "number1053729196",
-        "max": null,
-        "min": 0,
-        "name": "id_padding",
-        "onlyInt": true,
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "number"
-      },
-      {
-        "hidden": false,
-        "id": "bool2164830207",
-        "name": "reservations_enabled",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "bool"
-      },
-      {
-        "hidden": false,
-        "id": "bool3275941318",
-        "name": "setup_complete",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "bool"
       },
       {
         "hidden": false,
@@ -185,19 +159,23 @@ migrate((app) => {
         "type": "autodate"
       }
     ],
-    "id": "pbc_settings_001",
-    "indexes": [],
-    "listRule": "",
-    "name": "settings",
+    "id": "pbc_booking",
+    "indexes": [
+      "CREATE INDEX `idx_booking_overlap` ON `booking` (`item`, `status`, `start_date`, `end_date`)",
+      "CREATE INDEX `idx_booking_status` ON `booking` (`status`)",
+      "CREATE INDEX `idx_booking_end_status` ON `booking` (`end_date`, `status`)"
+    ],
+    "listRule": null,
+    "name": "booking",
     "system": false,
     "type": "base",
-    "updateRule": "@request.auth.id != \"\"",
-    "viewRule": ""
+    "updateRule": null,
+    "viewRule": null
   });
 
   return app.save(collection);
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_settings_001");
+  const collection = app.findCollectionByNameOrId("pbc_booking");
 
   return app.delete(collection);
 })
