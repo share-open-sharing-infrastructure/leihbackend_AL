@@ -24,6 +24,7 @@ const DELETION_GRACE_PERIOD_DAYS = $os.getenv('LL_DELETION_GRACE_PERIOD_DAYS')
     : 7
 const NO_WELCOME = $os.getenv('LL_NO_WELCOME') === 'true'
 const NO_DELETE_INACTIVE = $os.getenv('LL_NO_DELETE_INACTIVE') === 'true'
+const LOOPS_API_KEY = $os.getenv('LOOPS_API_KEY') || ''
 const DRY_MODE = $os.getenv('DRY_MODE') !== 'false'
 const IMPORT_MODE = $os.getenv('IMPORT_MODE') === 'true'
 const LOG_LEVEL = parseInt($os.getenv('LOG_LEVEL') || '4')  // warning
@@ -35,6 +36,7 @@ module.exports = {
     DELETION_GRACE_PERIOD_DAYS,
     NO_WELCOME,
     NO_DELETE_INACTIVE,
+    LOOPS_API_KEY,
     DRY_MODE,
     IMPORT_MODE,
     LOG_LEVEL,

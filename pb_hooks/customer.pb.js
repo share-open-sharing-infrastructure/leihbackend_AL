@@ -10,23 +10,31 @@
 */
 
 const { handleGetCustomersCsv } = require(`${__hooks}/routes/customer`)
+const { handleSyncSubscribersToLoops } = require(`${__hooks}/routes/subscriber`)
 
 // Record hooks
 // ----- //
 
 onRecordCreateExecute((e) => {
+    const { normalizeLegacySubscriber } = require(`${__hooks}/services/subscriber.js`)
+
     e.record.set('email', e.record.getString('email')?.toLowerCase())
+    normalizeLegacySubscriber(e.record)
     e.next()
 }, 'customer')
 
 onRecordUpdateExecute((e) => {
+    const { normalizeLegacySubscriber } = require(`${__hooks}/services/subscriber.js`)
+
     e.record.set('email', e.record.getString('email')?.toLowerCase())
+    normalizeLegacySubscriber(e.record)
     e.next()
 }, 'customer')
 
 onRecordAfterCreateSuccess((e) => {
     const { NO_WELCOME } = require(`${__hooks}/constants.js`)
     const { sendWelcomeMail } = require(`${__hooks}/services/customer.js`)
+    const { syncSubscriber } = require(`${__hooks}/services/subscriber.js`)
 
     e.next()
 
@@ -34,12 +42,31 @@ onRecordAfterCreateSuccess((e) => {
         $app.logger().info(`Sending welcome mail to ${e.record.getString('email')}.`)
         sendWelcomeMail(e.record)
     }
+
+    syncSubscriber(e.record, null)
+}, 'customer')
+
+onRecordAfterUpdateSuccess((e) => {
+    const { syncSubscriber } = require(`${__hooks}/services/subscriber.js`)
+
+    e.next()
+
+    syncSubscriber(e.record, e.record.original())
+}, 'customer')
+
+onRecordAfterDeleteSuccess((e) => {
+    const { handleSubscriberRemoval } = require(`${__hooks}/services/subscriber.js`)
+
+    e.next()
+
+    handleSubscriberRemoval(e.record)
 }, 'customer')
 
 // Routes
 // ----- //
 
 routerAdd('get', '/api/customer/csv', handleGetCustomersCsv, $apis.requireSuperuserAuth())
+routerAdd('post', '/api/subscriber/sync', handleSyncSubscribersToLoops, $apis.requireSuperuserAuth())
 
 // Scheduled jobs
 // ----- //
