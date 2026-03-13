@@ -225,7 +225,7 @@ function updateItems(reservation, oldReservation = null, isDelete = false, app =
 // E-Mail Sending
 
 function sendConfirmationMail(r) {
-    const { fmtDateTime } = require(`${__hooks}/utils/common.js`)
+    const { fmtDate } = require(`${__hooks}/utils/common.js`)
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
 
     // Skip email if on_premises is true
@@ -236,8 +236,15 @@ function sendConfirmationMail(r) {
     $app.expandRecord(r, ['items'], null)
 
     const customerEmail = r.getString('customer_email')
-    const pickupDateStr = fmtDateTime(r.getDateTime('pickup'))
+    const pickupDateStr = fmtDate(r.getDateTime('pickup'))
     const cancelLink = `${$app.settings().meta.appURL}/reservation/cancel?token=${r.getString('cancel_token')}`
+
+    const items = r.expandedAll('items').map((i) => ({
+        iid: i.getInt('iid'),
+        name: i.getString('name'),
+        deposit: i.getFloat('deposit'),
+    }))
+    const depositTotal = items.reduce((sum, i) => sum + i.deposit, 0)
 
     const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_confirmation.html`).render({
         pickup: pickupDateStr,
@@ -246,10 +253,8 @@ function sendConfirmationMail(r) {
         customer_email: customerEmail,
         customer_phone: r.getString('customer_phone'),
         comments: r.getString('comments'),
-        items: r.expandedAll('items').map((i) => ({
-            iid: i.getInt('iid'),
-            name: i.getString('name'),
-        })),
+        items: items,
+        deposit_total: depositTotal,
         cancel_link: cancelLink,
         otp: r.getString('otp'),
     })
@@ -268,7 +273,7 @@ function sendConfirmationMail(r) {
 }
 
 function sendCancellationMail(r) {
-    const { fmtDateTime } = require(`${__hooks}/utils/common.js`)
+    const { fmtDate } = require(`${__hooks}/utils/common.js`)
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
 
     // Skip email if on_premises is true
@@ -277,7 +282,7 @@ function sendCancellationMail(r) {
     }
 
     const customerEmail = r.getString('customer_email')
-    const pickupDateStr = fmtDateTime(r.getDateTime('pickup'))
+    const pickupDateStr = fmtDate(r.getDateTime('pickup'))
 
     const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_cancellation.html`).render({
         pickup: pickupDateStr,

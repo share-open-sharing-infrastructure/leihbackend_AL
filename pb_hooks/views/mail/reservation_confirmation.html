@@ -21,7 +21,7 @@
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
     <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px 0; font-weight: bold; width: 180px;">Abholtermin:</td>
-        <td style="padding: 12px 0;">{{ .pickup }} <span style="color: #666; font-size: 14px;">(Ungefähre Abholzeit)</span></td>
+        <td style="padding: 12px 0;">{{ .pickup }}</td>
     </tr>
     <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px 0; font-weight: bold;">Dein Name:</td>
@@ -53,10 +53,16 @@
 <ul style="list-style: none; padding: 0; margin: 0;">
     {{ range $item := .items }}
     <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(242, 12, 13);">
-        <strong>{{ $item.iid }}</strong> – {{ $item.name }}
+        <strong>{{ $item.iid }}</strong> – {{ $item.name }} {{ if gt $item.deposit 0.0 }}<span style="color: #666; font-size: 14px;">(Pfand: €{{ printf "%.2f" $item.deposit }})</span>{{ end }}
     </li>
     {{ end }}
 </ul>
+
+{{ if gt .deposit_total 0.0 }}
+<p style="margin-top: 16px; padding: 12px; background-color: #f0f0f0; border-radius: 4px;">
+    <strong>Gesamtpfand: €{{ printf "%.2f" .deposit_total }}</strong>
+</p>
+{{ end }}
 
 <p style="margin-top: 40px; font-size: 12px; color: #666; font-style: italic;">Diese Email wurde automatisch generiert. Sie kann daher Fehler enthalten. Wir bitten dies zu entschuldigen.</p>
 {{end}}
