@@ -3,6 +3,11 @@ function fmtDateTime(dt) {
     return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')} Uhr`
 }
 
+function fmtDate(dt) {
+    const date = new Date(dt.unix() * 1000)
+    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}`
+}
+
 function uniqueBy(arr, keyFn) {
     const seen = new Set()
     return arr.filter(item => {
@@ -25,6 +30,7 @@ function tryParseJson(str, fallback = null) {
 
 module.exports = {
     fmtDateTime,
+    fmtDate,
     uniqueBy,
     tryParseJson,
 }
