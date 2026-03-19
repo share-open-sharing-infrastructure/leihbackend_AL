@@ -174,6 +174,20 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
         if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
+        // Auto-close matching reservations when renting a reserved item.
+        if (numRequested > 0 && itemStatus === 'reserved') {
+            try {
+                const activeReservations = app.findRecordsByFilter('reservation', `items ~ '${itemId}' && done = false`)
+                activeReservations.forEach((r) => {
+                    r.set('done', true)
+                    app.save(r)
+                    app.logger().info(`Auto-closed reservation ${r.id} for item ${item.getInt('iid')} upon rental`)
+                })
+            } catch (e) {
+                app.logger().warn(`Failed to auto-close reservations for item ${item.getInt('iid')}: ${e}`)
+            }
+        }
+
         const numRented = app
             .findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
             .filter((r) => isUpdate || r.id !== rental.id) // exclude self for new rentals (record already exists at this point)
