@@ -106,24 +106,26 @@ function validateStatus(rental, app = $app) {
 
         let reservation = null
         try {
-            if (isReserved) reservation = app.findFirstRecordByFilter('reservation', 'items ~ {:itemId}', { itemId: item.id })  // try to find reservation by item id
+            if (isReserved) reservation = app.findFirstRecordByFilter('reservation', 'items ~ {:itemId} && done = false', { itemId: item.id })  // try to find active reservation by item id
         } catch (e) { }
 
-        const isSameCustomer = isReserved && reservation && reservation.getString('customer_email').toLowerCase() === customer.getString('email').toLowerCase()
-        const isNewCustomerReservation = isReserved && reservation && reservation.getBool('is_new_customer')
-
-        // Allow rental if item is instock, OR if reserved by either the same customer or a new customer reservation.
-        // For reservations by new customers, we skip the status check for convenience.
-        // Reason is, we encountered the case where a customer is not in fact new but instead already registered but with a different email.
-        if (isInstock || (isReserved && (isSameCustomer || isNewCustomerReservation))) {
-            const numTotal = item.getInt('copies')
-            const numAvailable = numTotal - countCopiesActiveByItem(item)
-            const numRequested = requestedCopies && item.id in requestedCopies ? requestedCopies[item.id] : 1 // backwards compatibility
-            if (numRequested > numAvailable) throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
-        }
-        else {
+        // Allow rental if item is instock or reserved. Block other statuses (repairing, deleted, etc.).
+        if (!isInstock && !isReserved) {
             throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental (status: ${itemStatus}).`)
         }
+
+        if (isReserved && reservation) {
+            const isSameCustomer = reservation.getString('customer_email').toLowerCase() === customer.getString('email').toLowerCase()
+            const isNewCustomerReservation = reservation.getBool('is_new_customer')
+            if (!isSameCustomer && !isNewCustomerReservation) {
+                app.logger().warn(`Renting reserved item ${item.getInt('iid')} to ${customer.getString('email')} instead of reserver ${reservation.getString('customer_email')}`)
+            }
+        }
+
+        const numTotal = item.getInt('copies')
+        const numAvailable = numTotal - countCopiesActiveByItem(item)
+        const numRequested = requestedCopies && item.id in requestedCopies ? requestedCopies[item.id] : 1 // backwards compatibility
+        if (numRequested > numAvailable) throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
     }
 }
 
