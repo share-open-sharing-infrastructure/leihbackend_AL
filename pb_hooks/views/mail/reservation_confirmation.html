@@ -53,7 +53,7 @@
 <ul style="list-style: none; padding: 0; margin: 0;">
     {{ range $item := .items }}
     <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(242, 12, 13);">
-        <strong>{{ $item.iid }}</strong> – {{ $item.name }} {{ if gt $item.deposit 0.0 }}<span style="color: #666; font-size: 14px;">(Pfand: €{{ printf "%.2f" $item.deposit }})</span>{{ end }}
+        <strong>{{ $item.iid }}</strong> – {{ $item.name }} {{ if gt $item.deposit 0 }}<span style="color: #666; font-size: 14px;">(Pfand: €{{ printf "%.2f" $item.deposit }})</span>{{ end }}
     </li>
     {{ end }}
 </ul>
