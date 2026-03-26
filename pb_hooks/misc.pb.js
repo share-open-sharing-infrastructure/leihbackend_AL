@@ -10,7 +10,9 @@
 */
 
 const { handlePostEmergencyClosing } = require(`${__hooks}/routes/misc`)
+const { handleGetOpeningHours } = require(`${__hooks}/routes/opening-hours`)
 
 // Routes
 // ----- //
 routerAdd('post', '/api/misc/emergency_closing', handlePostEmergencyClosing, $apis.requireSuperuserAuth())
+routerAdd('get', '/api/opening-hours', handleGetOpeningHours)
