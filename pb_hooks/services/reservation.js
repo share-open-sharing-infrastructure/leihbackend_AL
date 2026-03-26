@@ -125,7 +125,10 @@ function validateProtected(r) {
 }
 
 function validatePickup(r) {
-    const { OPENING_HOURS, WEEKDAYS } = require(`${__hooks}/constants.js`)
+    const { WEEKDAYS } = require(`${__hooks}/constants.js`)
+    const { getOpeningHours } = require(`${__hooks}/services/settings.js`)
+
+    const OPENING_HOURS = getOpeningHours()
 
     const pickupRaw = r.getDateTime('pickup')
     const pickup = new Date(pickupRaw.unix() * 1000)
