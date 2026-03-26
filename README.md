@@ -53,6 +53,13 @@ docker run -d \
 * `LL_NO_WELCOME`: Do not send welcome e-mails upon new customer registration. Default: `false`.
 * `LL_NO_DELETE_INACTIVE`: Do not delete inactive customers automatically. Default: `false`.
 
+### Opening hours
+Opening hours are stored in the `settings` collection as a JSON field (`opening_hours`). They can be configured through the llka-verwaltung settings UI (Konfiguration → Öffnungszeiten) and are used for reservation pickup validation.
+
+If no `settings` record exists (e.g. fresh installation without llka-verwaltung), the backend falls back to hardcoded defaults in `pb_hooks/constants.js`.
+
+The configured (or default) opening hours are available via a public API endpoint (see below).
+
 ## API Endpoints
 See [Web APIs reference](https://pocketbase.io/docs/api-records/) for documentation on what endpoints are available and how to use them (especially with regard to filtering, searching, etc.).
 
@@ -63,6 +70,7 @@ See [Web APIs reference](https://pocketbase.io/docs/api-records/) for documentat
 * `GET` `/api/item/csv` (superusers only)
 * `GET` `/api/rental/csv` (superusers only)
 * `GET` `/api/reservation/csv` (superusers only)
+* `GET` `/api/opening-hours` (public) — returns configured opening hours (or defaults)
 * `POST` `/api/misc/emergency_closing` (superusers only)
 
 ## Authentication
