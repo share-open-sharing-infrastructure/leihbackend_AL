@@ -58,7 +58,7 @@
     {{ end }}
 </ul>
 
-{{ if gt .deposit_total 0.0 }}
+{{ if gt .deposit_total 0 }}
 <p style="margin-top: 16px; padding: 12px; background-color: #f0f0f0; border-radius: 4px;">
     <strong>Gesamtpfand: €{{ printf "%.2f" .deposit_total }}</strong>
 </p>
