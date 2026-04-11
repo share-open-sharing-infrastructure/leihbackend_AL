@@ -43,8 +43,8 @@ jobs:
       - name: Create remote directories
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            sudo mkdir -p ${DEPLOY_PATH}/{pb_data,pb_hooks,pb_migrations,scripts} && \
-            sudo chown -R ${PB_USER}:${PB_USER} ${DEPLOY_PATH}
+            mkdir -p ${DEPLOY_PATH}/{pb_data,pb_hooks,pb_migrations,scripts} && \
+            chown -R ${PB_USER}:${PB_USER} ${DEPLOY_PATH}
           "
  
       # ── 5. Upload PocketBase binary ─────────────────────────────────────────
@@ -89,7 +89,7 @@ jobs:
       - name: Install systemd service
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            sudo tee /etc/systemd/system/pocketbase.service > /dev/null <<'EOF'
+            tee /etc/systemd/system/pocketbase.service > /dev/null <<'EOF'
           [Unit]
           Description=PocketBase
           After=network.target
@@ -111,8 +111,8 @@ jobs:
           [Install]
           WantedBy=multi-user.target
           EOF
-            sudo systemctl daemon-reload
-            sudo systemctl enable pocketbase
+            systemctl daemon-reload
+            systemctl enable pocketbase
           "
  
       # ── 10. Run pre-deploy script (optional) ────────────────────────────────
@@ -128,9 +128,9 @@ jobs:
       - name: Restart PocketBase
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            sudo systemctl restart pocketbase
+            systemctl restart pocketbase
             sleep 3
-            sudo systemctl is-active --quiet pocketbase && \
+            systemctl is-active --quiet pocketbase && \
               echo 'PocketBase is running' || \
               (echo 'PocketBase failed to start' && journalctl -u pocketbase -n 20 --no-pager && exit 1)
           "
