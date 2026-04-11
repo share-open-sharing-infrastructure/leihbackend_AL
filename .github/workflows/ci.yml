@@ -1,12 +1,10 @@
 name: CI/CD
-
 on:
   push:
     branches:
       - master
     tags:
       - 'v*'
-
 jobs:
   deploy:
     name: Build & Deploy PocketBase
@@ -14,12 +12,12 @@ jobs:
     env:
       DEPLOY_PATH: /pocketbase
       PB_USER: pocketbase
- 
+
     steps:
       # ── 1. Checkout repo ────────────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
- 
+
       # ── 2. Setup PocketBase ───────────────────────────────────────
       - name: Setup PocketBase
         run: |
@@ -28,27 +26,48 @@ jobs:
           unzip -o pocketbase.zip
           chmod +x pocketbase
           ./pocketbase --version
- 
+
       # ── 3. Set up SSH ────────────────────────────────────────────────────────
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
- 
+
       - name: Add server to known_hosts
         run: |
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
- 
-      # ── 4. Upload PocketBase binary ─────────────────────────────────────────
+
+      # ── 4. Prepare remote directory with sudo ──────────────────────────────
+      - name: Prepare remote deploy directory
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
+            # Create directory if it doesn't exist (requires sudo)
+            sudo mkdir -p /pocketbase
+
+            # Give the deploy user ownership so subsequent steps don't need sudo
+            sudo chown $USER:$USER /pocketbase
+
+            # Ensure the directory is executable/traversable
+            sudo chmod 755 /pocketbase
+          EOF
+
+      # ── 5. Upload PocketBase binary ─────────────────────────────────────────
       - name: Upload PocketBase binary
         run: |
-          scp -o StrictHostKeyChecking=accept-new \
-            pocketbase \
+          scp pocketbase \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/
-          
-          # Optional: Verify upload was successful
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "ls -lh ${DEPLOY_PATH}/pocketbase"
 
-          
-        
+      # ── 6. Set permissions & restart service ───────────────────────────────
+      - name: Set permissions and restart service
+        run: |
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
+            # Make binary executable
+            chmod +x /pocketbase/pocketbase
+
+            # Optionally restart the systemd service if you have one
+            # sudo systemctl restart pocketbase
+
+            # Verify
+            ls -lh /pocketbase/pocketbase
+            /pocketbase/pocketbase --version
+          EOF
