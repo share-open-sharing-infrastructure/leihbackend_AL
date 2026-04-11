@@ -12,7 +12,7 @@ jobs:
     name: Build & Deploy PocketBase
     runs-on: ubuntu-latest
     env:
-      DEPLOY_PATH: /
+      DEPLOY_PATH: .
       PB_USER: pocketbase
  
     steps:
