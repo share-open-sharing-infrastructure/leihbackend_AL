@@ -41,13 +41,13 @@ jobs:
       - name: Upload PocketBase binary
         run: |
           scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/
 
       - name: Set permissions and restart service
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
-            chmod +x ~/pocketbase/pocketbase
-            ~/pocketbase/pocketbase --version
+            chmod +x ~/pocketbase
+            ~/pocketbase --version
       
             # Reload config in case it changed, then start or restart
             supervisorctl reread
