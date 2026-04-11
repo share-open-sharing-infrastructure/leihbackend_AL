@@ -45,6 +45,7 @@ jobs:
           # Ensure destination directory exists and is writable
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "          
           scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}"
+
           
         
