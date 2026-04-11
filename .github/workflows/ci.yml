@@ -48,7 +48,14 @@ jobs:
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
             chmod +x ~/pocketbase/pocketbase
             ~/pocketbase/pocketbase --version
-
-            # Restart via supervisord (Uberspace's way — not systemctl)
-            supervisorctl restart pocketbase
+      
+            # Reload config in case it changed, then start or restart
+            supervisorctl reread
+            supervisorctl update
+      
+            if supervisorctl status pocketbase | grep -q RUNNING; then
+              supervisorctl restart pocketbase
+            else
+              supervisorctl start pocketbase
+            fi
           EOF
