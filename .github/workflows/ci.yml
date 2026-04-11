@@ -41,7 +41,7 @@ jobs:
       - name: Upload PocketBase binary
         run: |
           scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/.
 
       - name: Set permissions and restart service
         run: |
