@@ -161,4 +161,4 @@ jobs:
       # ── 14. Print deployed version ───────────────────────────────────────────
       - name: Print deployed version
         run: |
-          echo "✅ Successfully deployed PocketBase v${{ steps.pb_version.outputs.version }} to Uberspace"
+          echo "Successfully deployed PocketBase v${{ steps.pb_version.outputs.version }} to Uberspace"
