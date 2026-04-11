@@ -43,20 +43,6 @@ jobs:
           scp pocketbase \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/
 
-      - name: Sync pb_hooks
-        run: |
-          rsync -avz --delete \
-            --exclude='.gitkeep' \
-            pb_hooks/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}/pocketbase/pb_hooks/
- 
-      - name: Sync pb_migrations
-        run: |
-          rsync -avz \
-            --exclude='.gitkeep' \
-            pb_migrations/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}/pocketbase/pb_migrations/
-
       - name: Set permissions and restart service
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
@@ -73,3 +59,16 @@ jobs:
               supervisorctl start pocketbase
             fi
           EOF
+     - name: Sync pb_hooks
+        run: |
+          rsync -avz --delete \
+            --exclude='.gitkeep' \
+            pb_hooks/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}/pocketbase/pb_hooks/
+ 
+      - name: Sync pb_migrations
+        run: |
+          rsync -avz \
+            --exclude='.gitkeep' \
+            pb_migrations/ \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}/pocketbase/pb_migrations/
