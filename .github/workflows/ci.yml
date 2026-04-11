@@ -10,7 +10,7 @@ jobs:
     name: Build & Deploy PocketBase
     runs-on: ubuntu-latest
     env:
-      DEPLOY_PATH: ~/pocketbase   # ← home directory, no sudo needed
+      DEPLOY_PATH: .   
 
     steps:
       - name: Checkout repository
