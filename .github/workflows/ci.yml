@@ -1,81 +1,164 @@
-name: CI/CD
+name: Deploy PocketBase to Uberspace
+
 on:
   push:
     branches:
       - master
-    tags:
-      - 'v*'
+  workflow_dispatch:
+
 jobs:
   deploy:
-    name: Build & Deploy PocketBase
+    name: Deploy PocketBase
     runs-on: ubuntu-latest
-    env:
-      DEPLOY_PATH: .   
 
     steps:
+      # ── 1. Checkout repository ──────────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup PocketBase
+      # ── 2. Fetch latest PocketBase release version ──────────────────────────
+      - name: Get latest PocketBase version
+        id: pb_version
         run: |
-          URL=$(curl -s https://api.github.com/repos/pocketbase/pocketbase/releases/latest | jq -r '.assets[] | select(.name | test("linux_amd64.zip$")) | .browser_download_url')
-          wget -q -O pocketbase.zip $URL
-          unzip -o pocketbase.zip
-          chmod +x pocketbase
-          ./pocketbase --version
+          LATEST=$(curl -s https://api.github.com/repos/pocketbase/pocketbase/releases/latest \
+            | jq -r '.tag_name' | sed 's/^v//')
+          echo "version=${LATEST}" >> "$GITHUB_OUTPUT"
+          echo "PocketBase latest version: ${LATEST}"
 
+      # ── 3. Download PocketBase binary ────────────────────────────────────────
+      - name: Download PocketBase binary
+        run: |
+          VERSION="${{ steps.pb_version.outputs.version }}"
+          URL="https://github.com/pocketbase/pocketbase/releases/download/v${VERSION}/pocketbase_${VERSION}_linux_amd64.zip"
+          echo "Downloading PocketBase v${VERSION} from ${URL}"
+          curl -fsSL "$URL" -o pocketbase.zip
+          unzip -o pocketbase.zip pocketbase
+          chmod +x pocketbase
+
+      # ── 4. Prepare SSH key ───────────────────────────────────────────────────
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      - name: Add server to known_hosts
+      - name: Add Uberspace host to known hosts
         run: |
-          ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -p ${{ vars.UBERSPACE_SSH_PORT || 22 }} \
+            "${{ vars.SERVER_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Prepare remote directory
+      # ── 5. Ensure remote directory structure exists ──────────────────────────
+      - name: Create remote directories
         run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-            "mkdir -p ~/pocketbase"
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "mkdir -p ~/pocketbase/pb_data ~/pocketbase/pb_hooks ~/pocketbase/pb_migrations ~/pocketbase/scripts"
 
+      # ── 6. Stop running PocketBase instance (if any) ────────────────────────
+      - name: Stop PocketBase service
+        run: |
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "supervisorctl stop pocketbase 2>/dev/null || true"
+
+      # ── 7. Upload new PocketBase binary ─────────────────────────────────────
       - name: Upload PocketBase binary
         run: |
-          scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/.
+          rsync -avz --checksum -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            pocketbase \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pocketbase"
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "chmod +x ~/pocketbase/pocketbase"
 
-      - name: Set permissions and restart service
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} bash << 'EOF'
-            chmod +x ~/pocketbase
-            ~/pocketbase --version
-      
-            # Reload config in case it changed, then start or restart
-            supervisorctl reread
-            supervisorctl update
-      
-            if supervisorctl status pocketbase | grep -q RUNNING; then
-              supervisorctl restart pocketbase
-            else
-              supervisorctl start pocketbase
-            fi
+      # ── 8. Sync pb_hooks ─────────────────────────────────────────────────────
       - name: Sync pb_hooks
         run: |
-          rsync -avz --delete \
-            --exclude='.gitkeep' \
+          rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             pb_hooks/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/pb_hooks/  
-      
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_hooks/"
+
+      # ── 9. Sync pb_migrations ────────────────────────────────────────────────
       - name: Sync pb_migrations
         run: |
-          rsync -avz \
-            --exclude='.gitkeep' \
+          rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             pb_migrations/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/pb_migrations/ 
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_migrations/"
 
+      # ── 10. Sync scripts ─────────────────────────────────────────────────────
       - name: Sync scripts
         run: |
-          rsync -avz \
-            --exclude='.gitkeep' \
+          rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             scripts/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/scripts/ 
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/scripts/"
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "chmod +x ~/pocketbase/scripts/*.sh 2>/dev/null || true"
 
+      # ── 11. Ensure supervisord service is configured ─────────────────────────
+      - name: Configure supervisord service
+        run: |
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
+          CONF_DIR=~/.config/supervisord/conf.d
+          mkdir -p "$CONF_DIR"
+
+          # Only write the config if it doesn't already exist
+          if [ ! -f "$CONF_DIR/pocketbase.conf" ]; then
+            cat > "$CONF_DIR/pocketbase.conf" << 'CONF'
+          [program:pocketbase]
+          command=%(ENV_HOME)s/pocketbase/pocketbase serve --http=127.0.0.1:%(ENV_PB_PORT)s
+          directory=%(ENV_HOME)s/pocketbase
+          autostart=yes
+          autorestart=yes
+          startsecs=5
+          startretries=3
+          stdout_logfile=%(ENV_HOME)s/logs/pocketbase.log
+          stdout_logfile_maxbytes=10MB
+          stdout_logfile_backups=3
+          stderr_logfile=%(ENV_HOME)s/logs/pocketbase_error.log
+          stderr_logfile_maxbytes=10MB
+          stderr_logfile_backups=3
+          environment=PB_PORT="8090"
+          CONF
+            echo "supervisord config written."
+          else
+            echo "supervisord config already exists, skipping."
+          fi
+
+          mkdir -p ~/logs
+          supervisorctl reread
+          supervisorctl update
+          EOF
+
+      # ── 12. Start (or restart) PocketBase ───────────────────────────────────
+      - name: Start PocketBase service
+        run: |
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "supervisorctl start pocketbase 2>/dev/null || supervisorctl restart pocketbase"
+
+      # ── 13. Health check ─────────────────────────────────────────────────────
+      - name: Health check
+        run: |
+          ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
+            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
+          echo "Waiting for PocketBase to start..."
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8090/api/health || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "PocketBase is healthy (HTTP 200)"
+              exit 0
+            fi
+            echo "  Attempt $i/12: got HTTP ${STATUS}, retrying in 5s..."
+            sleep 5
+          done
+          echo "PocketBase did not become healthy in time"
+          supervisorctl status pocketbase
+          tail -n 50 ~/logs/pocketbase_error.log || true
+          exit 1
+          EOF
+
+      # ── 14. Print deployed version ───────────────────────────────────────────
+      - name: Print deployed version
+        run: |
+          echo "✅ Successfully deployed PocketBase v${{ steps.pb_version.outputs.version }} to Uberspace"
