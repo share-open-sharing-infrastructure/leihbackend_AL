@@ -50,14 +50,14 @@ jobs:
       - name: Create remote directories
         run: |
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" \
             "mkdir -p ~/pocketbase/pb_data ~/pocketbase/pb_hooks ~/pocketbase/pb_migrations ~/pocketbase/scripts"
 
       # ── 6. Stop running PocketBase instance (if any) ────────────────────────
       - name: Stop PocketBase service
         run: |
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" \
             "supervisorctl stop pocketbase 2>/dev/null || true"
 
       # ── 7. Upload new PocketBase binary ─────────────────────────────────────
@@ -65,9 +65,9 @@ jobs:
         run: |
           rsync -avz --checksum -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             pocketbase \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pocketbase"
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pocketbase"
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" \
             "chmod +x ~/pocketbase/pocketbase"
 
       # ── 8. Sync pb_hooks ─────────────────────────────────────────────────────
@@ -75,30 +75,30 @@ jobs:
         run: |
           rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             pb_hooks/ \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_hooks/"
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_hooks/"
 
       # ── 9. Sync pb_migrations ────────────────────────────────────────────────
       - name: Sync pb_migrations
         run: |
           rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             pb_migrations/ \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_migrations/"
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/pb_migrations/"
 
       # ── 10. Sync scripts ─────────────────────────────────────────────────────
       - name: Sync scripts
         run: |
           rsync -avz --delete -e "ssh -p ${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
             scripts/ \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/scripts/"
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}:~/pocketbase/scripts/"
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" \
             "chmod +x ~/pocketbase/scripts/*.sh 2>/dev/null || true"
 
       # ── 11. Ensure supervisord service is configured ─────────────────────────
       - name: Configure supervisord service
         run: |
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
           CONF_DIR=~/.config/supervisord/conf.d
           mkdir -p "$CONF_DIR"
 
@@ -134,14 +134,14 @@ jobs:
       - name: Start PocketBase service
         run: |
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" \
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" \
             "supervisorctl start pocketbase 2>/dev/null || supervisorctl restart pocketbase"
 
       # ── 13. Health check ─────────────────────────────────────────────────────
       - name: Health check
         run: |
           ssh -p "${{ vars.UBERSPACE_SSH_PORT || 22 }}" \
-            "${{ vars.UBERSPACE_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
+            "${{ vars.SERVER_USER }}@${{ vars.SERVER_HOST }}" << 'EOF'
           echo "Waiting for PocketBase to start..."
           for i in $(seq 1 12); do
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8090/api/health || true)
