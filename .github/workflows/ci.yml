@@ -42,10 +42,13 @@ jobs:
       # ── 4. Upload PocketBase binary ─────────────────────────────────────────
       - name: Upload PocketBase binary
         run: |
-          # Ensure destination directory exists and is writable
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "          
-          scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}"
+          scp -o StrictHostKeyChecking=accept-new \
+            pocketbase \
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/
+          
+          # Optional: Verify upload was successful
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "ls -lh ${DEPLOY_PATH}/pocketbase"
 
           
         
