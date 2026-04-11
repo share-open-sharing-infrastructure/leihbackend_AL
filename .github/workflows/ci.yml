@@ -72,7 +72,7 @@ jobs:
             pb_migrations/ \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:~/pocketbase/pb_migrations/ 
 
-        - name: Sync scripts
+      - name: Sync scripts
         run: |
           rsync -avz \
             --exclude='.gitkeep' \
