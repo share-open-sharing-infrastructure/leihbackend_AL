@@ -39,13 +39,6 @@ jobs:
         run: |
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
  
-      # ── 4. Create remote directory structure ────────────────────────────────
-      - name: Create remote directories
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            sudo mkdir -p ${DEPLOY_PATH}/{pb_data,pb_hooks,pb_migrations,scripts}
-          "
- 
       # ── 5. Upload PocketBase binary ─────────────────────────────────────────
       - name: Upload PocketBase binary
         run: |
