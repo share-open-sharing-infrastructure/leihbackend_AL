@@ -43,17 +43,13 @@ jobs:
       - name: Upload PocketBase binary
         run: |
           # Ensure destination directory exists and is writable
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            mkdir -p ${DEPLOY_PATH}
-            chmod 755 ${DEPLOY_PATH}
-          "
-          
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "          
           scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}
           
           # Make the binary executable
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            chmod +x ${DEPLOY_PATH}/pocketbase
+            chmod +x ${DEPLOY_PATH}
           "
       # ── 6. Sync pb_hooks ────────────────────────────────────────────────────
       - name: Sync pb_hooks
