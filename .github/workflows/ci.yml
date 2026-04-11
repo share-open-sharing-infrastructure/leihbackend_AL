@@ -43,10 +43,10 @@ jobs:
       - name: Upload PocketBase binary
         run: |
           scp pocketbase \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/pocketbase
+            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/
  
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            chmod +x ${DEPLOY_PATH}/pocketbase
+            chmod +x ${DEPLOY_PATH}/
           "
  
       # ── 6. Sync pb_hooks ────────────────────────────────────────────────────
