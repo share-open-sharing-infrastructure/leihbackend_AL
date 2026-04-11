@@ -39,7 +39,7 @@ jobs:
         run: |
           ssh-keyscan -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
  
-      # ── 5. Upload PocketBase binary ─────────────────────────────────────────
+      # ── 4. Upload PocketBase binary ─────────────────────────────────────────
       - name: Upload PocketBase binary
         run: |
           # Ensure destination directory exists and is writable
@@ -47,94 +47,4 @@ jobs:
           scp pocketbase \
             ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}
           
-          # Make the binary executable
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            chmod +x ${DEPLOY_PATH}
-          "
-      # ── 6. Sync pb_hooks ────────────────────────────────────────────────────
-      - name: Sync pb_hooks
-        run: |
-          rsync -avz --delete \
-            --exclude='.gitkeep' \
-            pb_hooks/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/pb_hooks/
- 
-      # ── 7. Sync pb_migrations ───────────────────────────────────────────────
-      - name: Sync pb_migrations
-        run: |
-          rsync -avz \
-            --exclude='.gitkeep' \
-            pb_migrations/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/pb_migrations/
- 
-      # ── 8. Sync scripts ─────────────────────────────────────────────────────
-      - name: Sync scripts
-        run: |
-          rsync -avz \
-            --exclude='.gitkeep' \
-            scripts/ \
-            ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:${DEPLOY_PATH}/scripts/
- 
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            chmod +x ${DEPLOY_PATH}/scripts/*.sh 2>/dev/null || true
-          "
- 
-      # ── 9. Install / update systemd service ─────────────────────────────────
-      - name: Install systemd service
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            tee /etc/systemd/system/pocketbase.service > /dev/null <<'EOF'
-          [Unit]
-          Description=PocketBase
-          After=network.target
- 
-          [Service]
-          Type=simple
-          User=${PB_USER}
-          WorkingDirectory=${DEPLOY_PATH}
-          ExecStart=${DEPLOY_PATH}/pocketbase serve \
-            --http=0.0.0.0:8090 \
-            --dir=${DEPLOY_PATH}/pb_data \
-            --hooksDir=${DEPLOY_PATH}/pb_hooks \
-            --migrationsDir=${DEPLOY_PATH}/pb_migrations
-          Restart=on-failure
-          RestartSec=5
-          StandardOutput=journal
-          StandardError=journal
- 
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-            systemctl daemon-reload
-            systemctl enable pocketbase
-          "
- 
-      # ── 10. Run pre-deploy script (optional) ────────────────────────────────
-      - name: Run pre-deploy script
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            if [ -f ${DEPLOY_PATH}/scripts/pre-deploy.sh ]; then
-              bash ${DEPLOY_PATH}/scripts/pre-deploy.sh
-            fi
-          "
- 
-      # ── 11. Restart PocketBase ───────────────────────────────────────────────
-      - name: Restart PocketBase
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            systemctl restart pocketbase
-            sleep 3
-            systemctl is-active --quiet pocketbase && \
-              echo 'PocketBase is running' || \
-              (echo 'PocketBase failed to start' && journalctl -u pocketbase -n 20 --no-pager && exit 1)
-          "
- 
-      # ── 12. Run post-deploy script (optional) ───────────────────────────────
-      - name: Run post-deploy script
-        run: |
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
-            if [ -f ${DEPLOY_PATH}/scripts/post-deploy.sh ]; then
-              bash ${DEPLOY_PATH}/scripts/post-deploy.sh
-            fi
-          "
- 
+        
