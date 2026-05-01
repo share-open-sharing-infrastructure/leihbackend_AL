@@ -253,7 +253,7 @@ function sendReminderMail(r) {
             name: $app.settings().meta.senderName,
         },
         to: [{ address: customerEmail }],
-        subject: `[leih.lokal] Rückgabe von Gegenständen morgen fällig`,
+        subject: `Leihladen Commonszentrum - Rückgabe von Gegenständen morgen fällig`,
         html,
     })
 

@@ -101,7 +101,7 @@ describe('Customer', () => {
             let messages = await listInbox(imapClient)
             assert.lengthOf(messages, 1)
             assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, `[leih.lokal] Löschung Ihrer Daten im leih.lokal nach Inaktivität (Kunden-Nr. ${customer.iid})`)
+            assert.equal(messages[0].subject, `Leihladen Commonszentrum - Löschung Ihrer Daten nach Inaktivität (Kunden-Nr. ${customer.iid})`)
             assert.deepEqual(messages[0].recipients, [customer.email])
 
             let logs = await client.logs.getList(1, 10, { sort: '-created' })
@@ -171,7 +171,7 @@ describe('Customer', () => {
             let messages = await listInbox(imapClient)
             assert.lengthOf(messages, 1)
             assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, `[leih.lokal] Löschung Ihrer Daten im leih.lokal nach Inaktivität (Kunden-Nr. ${customer.iid})`)
+            assert.equal(messages[0].subject, `Leihladen Commonszentrum - Löschung Ihrer Daten nach Inaktivität (Kunden-Nr. ${customer.iid})`)
             assert.deepEqual(messages[0].recipients, [customer.email])
 
             await client.collection('rental').delete(rental.id)

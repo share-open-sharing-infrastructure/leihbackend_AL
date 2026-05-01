@@ -115,7 +115,7 @@ function sendEmergencyClosingMail(c) {
             name: $app.settings().meta.senderName,
         },
         to: [{ address: customerEmail }],
-        subject: `[leih.lokal] Heute außerplanmäßig geschlossen!`,
+        subject: `Leihladen Commonszentrum - Heute außerplanmäßig geschlossen!`,
         html,
     })
 
@@ -140,7 +140,7 @@ function sendDeletionReminderMail(c) {
             name: $app.settings().meta.senderName,
         },
         to: [{ address: customerEmail }],
-        subject: `[leih.lokal] Löschung Ihrer Daten im leih.lokal nach Inaktivität (Kunden-Nr. ${c.getInt('iid')})`,
+        subject: `Leihladen Commonszentrum - Löschung Ihrer Daten nach Inaktivität (Kunden-Nr. ${c.getInt('iid')})`,
         html,
     })
 

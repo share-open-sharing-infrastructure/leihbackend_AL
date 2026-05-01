@@ -465,7 +465,7 @@ describe('Rentals', () => {
             messages = await listInbox(imapClient)
             assert.lengthOf(messages, 1)
             assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, '[leih.lokal] Rückgabe von Gegenständen morgen fällig')
+            assert.equal(messages[0].subject, 'Leihladen Commonszentrum - Rückgabe von Gegenständen morgen fällig')
             assert.deepEqual(messages[0].recipients, [customer1.email])
 
             await client.collection('rental').delete(rental.id)

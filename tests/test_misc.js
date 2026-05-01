@@ -77,8 +77,8 @@ describe('Misc', () => {
             assert.lengthOf(messages, 2)
             assert.equal(messages[0].sender, USERNAME)
             assert.equal(messages[1].sender, USERNAME)
-            assert.equal(messages[0].subject, '[leih.lokal] Heute außerplanmäßig geschlossen!')
-            assert.equal(messages[1].subject, '[leih.lokal] Heute außerplanmäßig geschlossen!')
+            assert.equal(messages[0].subject, 'Leihladen Commonszentrum -  Heute außerplanmäßig geschlossen!')
+            assert.equal(messages[1].subject, 'Leihladen Commonszentrum -  Heute außerplanmäßig geschlossen!')
             assert.deepEqual(
                 messages.map(m => m.recipients[0]).toSorted(),
                 [customer1.email, customer2.email].toSorted()
