@@ -133,18 +133,18 @@ function validatePickup(r) {
     const pickupRaw = r.getDateTime('pickup')
     const pickup = new Date(pickupRaw.unix() * 1000)
     if (pickupRaw.before(new DateTime())) {
-        throw new BadRequestError('Pickup date must be in the future')
+        throw new BadRequestError('Das Abholdatum muss in der Zukunft liegen.')
     }
 
     if (
-        !OPENING_HOURS.filter((d) => WEEKDAYS[d[0]] === pickup.getDay())
+        !OPENING_HOURS.filter((d) => WEEKDAYS[d[0]] === pickup.getUTCDay())
             .map((d) => [new Date(1970, 0, 1, d[1].split(':')[0], d[1].split(':')[1]), new Date(1970, 0, 1, d[2].split(':')[0], d[2].split(':')[1])])
             .filter((d) => {
-                const d1 = new Date(1970, 0, 1, pickup.getHours(), pickup.getMinutes())
+                const d1 = new Date(1970, 0, 1, pickup.getUTCHours(), pickup.getUTCMinutes())
                 return d1 >= d[0] && d1 < d[1]
             }).length
     ) {
-        throw new BadRequestError('Pickup date outside opening hours')
+        throw new BadRequestError('Das Abholdatum liegt außerhalb der Öffnungszeiten.')
     }
 }
 
