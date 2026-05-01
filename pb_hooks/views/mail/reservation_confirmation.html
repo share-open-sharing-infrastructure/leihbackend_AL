@@ -4,20 +4,20 @@
 <p>Wir haben Deine Reservierung erhalten. Wir werden diese baldmöglich bearbeiten und den Gegenstand (falls er verfügbar ist) für Dich bis zum Termin zurücklegen.</p>
 
 {{ if .otp }}
-<div style="background-color: rgb(242, 12, 13); color: white; padding: 30px; margin: 30px 0; text-align: center; border-radius: 8px;">
+<div style="background-color: rgb(89, 122, 216); color: white; padding: 30px; margin: 30px 0; text-align: center; border-radius: 8px;">
     <p style="margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 2px;">DEIN ABHOLCODE</p>
     <p style="margin: 15px 0 0 0; font-size: 48px; font-weight: bold; letter-spacing: 8px;">{{ .otp }}</p>
 </div><br>
 <p style="text-align: center; color: #666; font-size: 14px; margin-top: -20px;">Bitte zeige diesen Code bei der Abholung vor.</p>
 {{ end }}
 
-<p><strong>Wichtiger Hinweis:</strong> Falls Du noch keine Nutzernummer hast, d.h. Neukunde bist, drucke bitte (falls möglich) das <a href="https://www.buergerstiftung-karlsruhe.de/wp-content/uploads/2022/03/2022_03_05-NutzungsantragLeihbedingungen.pdf" style="color: rgb(242, 12, 13);">Registrierungsformular</a> aus und bringe es ausgefüllt mit. Kein Problem, falls du keinen Drucker hast, haben wir auch Formulare vor Ort.</p>
+<p><strong>Wichtiger Hinweis:</strong> Falls Du noch keine Nutzernummer hast, d.h. Neukunde bist, drucke bitte (falls möglich) das <a href="https://leihladen.commonszentrum.de/reservierung" style="color: rgb(89, 122, 216);">Registrierungsformular</a> aus und bringe es ausgefüllt mit. Kein Problem, falls du keinen Drucker hast, haben wir auch Formulare vor Ort.</p>
 
-<p>Um den Termin wieder abzusagen, klicke bitte auf folgenden Link: <a href="{{ .cancel_link }}" style="color: rgb(242, 12, 13);">Termin absagen</a>.</p>
+<p>Um den Termin wieder abzusagen, klicke bitte auf folgenden Link <a href="{{ .cancel_link }}" style="color: rgb(89, 122, 216);">Termin absagen</a> oder schreib uns per Mail.</p>
 
-<h2 style="color: rgb(242, 12, 13); margin-top: 40px;">Reservierungsübersicht</h2>
+<h2 style="color: rgb(89, 122, 216); margin-top: 40px;">Reservierungsübersicht</h2>
 
-<h3 style="color: #333; border-bottom: 2px solid rgb(242, 12, 13); padding-bottom: 8px;">Deine Daten</h3>
+<h3 style="color: #333; border-bottom: 2px solid rgb(89, 122, 216); padding-bottom: 8px;">Deine Daten</h3>
 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
     <tr style="border-bottom: 1px solid #eee;">
         <td style="padding: 12px 0; font-weight: bold; width: 180px;">Abholtermin:</td>
@@ -49,18 +49,18 @@
     {{ end }}
 </table>
 
-<h3 style="color: #333; border-bottom: 2px solid rgb(242, 12, 13); padding-bottom: 8px;">Deine Reservierung</h3>
+<h3 style="color: #333; border-bottom: 2px solid rgb(89, 122, 216); padding-bottom: 8px;">Deine Reservierung</h3>
 <ul style="list-style: none; padding: 0; margin: 0;">
     {{ range $item := .items }}
-    <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(242, 12, 13);">
-        <strong>{{ $item.iid }}</strong> – {{ $item.name }} {{ if gt $item.deposit 0 }}<span style="color: #666; font-size: 14px;">(Pfand: €{{ printf "%.2f" $item.deposit }})</span>{{ end }}
+    <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(89, 122, 216);">
+        <strong>{{ $item.iid }}</strong> – {{ $item.name }} {{ if gt $item.deposit 0 }}<span style="color: #666; font-size: 14px;">(Pfand: €{{ $item.deposit }}.00)</span>{{ end }}
     </li>
     {{ end }}
 </ul>
 
 {{ if gt .deposit_total 0 }}
 <p style="margin-top: 16px; padding: 12px; background-color: #f0f0f0; border-radius: 4px;">
-    <strong>Gesamtpfand: €{{ printf "%.2f" .deposit_total }}</strong>
+    <strong>Gesamtpfand: €{{ .deposit_total }}.00</strong>
 </p>
 {{ end }}
 
