@@ -35,12 +35,19 @@ onRecordAfterCreateSuccess((e) => {
     const { NO_WELCOME } = require(`${__hooks}/constants.js`)
     const { sendWelcomeMail } = require(`${__hooks}/services/customer.js`)
     const { syncSubscriber } = require(`${__hooks}/services/subscriber.js`)
+    const { notifyNewCustomer } = require(`${__hooks}/services/notification.js`)
 
     e.next()
 
     if (!NO_WELCOME) {
         $app.logger().info(`Sending welcome mail to ${e.record.getString('email')}.`)
         sendWelcomeMail(e.record)
+    }
+
+    try {
+        notifyNewCustomer(e.record)
+    } catch (err) {
+        $app.logger().error(`Failed to send admin notification for new customer ${e.record.id} – ${err}.`)
     }
 
     syncSubscriber(e.record, null)

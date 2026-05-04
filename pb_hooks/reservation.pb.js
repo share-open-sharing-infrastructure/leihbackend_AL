@@ -16,6 +16,7 @@ const { handleGetCancel, handleGetReservationsCsv } = require(`${__hooks}/routes
 
 onRecordCreateRequest((e) => {
     const { validate, autofillCustomer, sendConfirmationMail } = require(`${__hooks}/services/reservation.js`)
+    const { notifyNewReservation } = require(`${__hooks}/services/notification.js`)
 
     // hide record information for non-authenticated users
     // especially hide customer data to prevent leaking personal information by enumerating customer ids
@@ -48,6 +49,12 @@ onRecordCreateRequest((e) => {
         sendConfirmationMail(e.record)
     } catch(e) {
         $app.logger().error(`Failed to send confirmation for reservation ${recordId} – ${e}.`)
+    }
+
+    try {
+        notifyNewReservation(e.record)
+    } catch(e) {
+        $app.logger().error(`Failed to send admin notification for reservation ${recordId} – ${e}.`)
     }
 }, 'reservation')
 
