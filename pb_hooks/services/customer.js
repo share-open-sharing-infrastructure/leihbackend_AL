@@ -90,7 +90,7 @@ function sendWelcomeMail(c) {
             name: $app.settings().meta.senderName,
         },
         to: [{ address: customerEmail }],
-        subject: `Herzlich Willkommen im leih.lokal!`,
+        subject: `Herzlich Willkommen im Leihladen des Commonszentrums!`,
         html,
     })
 
