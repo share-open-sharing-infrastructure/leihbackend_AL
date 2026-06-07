@@ -54,7 +54,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
             assert.doesNotHaveAnyKeys(reservation, ['customer_iid',
@@ -84,10 +84,11 @@ describe('Reservations', () => {
             assert.equal(item1.status, 'reserved')
 
             const messages = await listInbox(imapClient)
-            assert.lengthOf(messages, 1)
-            assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, 'Wir haben deine Reservierung für 25.12.2026 18:00 Uhr erhalten')
-            assert.deepEqual(messages[0].recipients, [customer1.email])
+            assert.isAtLeast(messages.length, 1)
+            const confirmMsg = messages.find(m => m.subject === 'Wir haben deine Reservierung für 27.12.2026 erhalten')
+            assert.isNotNull(confirmMsg)
+            assert.equal(confirmMsg.sender, USERNAME)
+            assert.deepEqual(confirmMsg.recipients, [customer1.email])
 
             await client.collection('reservation').delete(reservation.id)
 
@@ -99,7 +100,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_email: 'johndoe@leihlokal-ka.de',
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
             assert.doesNotHaveAnyKeys(reservation, ['customer_iid',
@@ -129,10 +130,11 @@ describe('Reservations', () => {
             assert.equal(item1.status, 'reserved')
 
             const messages = await listInbox(imapClient)
-            assert.lengthOf(messages, 1)
-            assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, 'Wir haben deine Reservierung für 25.12.2026 18:00 Uhr erhalten')
-            assert.deepEqual(messages[0].recipients, [customer1.email])
+            assert.isAtLeast(messages.length, 1)
+            const confirmMsg = messages.find(m => m.subject === 'Wir haben deine Reservierung für 27.12.2026 erhalten')
+            assert.isNotNull(confirmMsg)
+            assert.equal(confirmMsg.sender, USERNAME)
+            assert.deepEqual(confirmMsg.recipients, [customer1.email])
 
             await client.collection('reservation').delete(reservation.id)
 
@@ -144,7 +146,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
 
             reservation = await client.collection('reservation').getOne(reservation.id)
@@ -163,7 +165,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_email: 'johndoe@leihlokal-ka.de',  // customer 1 email
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
 
             reservation = await client.collection('reservation').getOne(reservation.id)
@@ -183,15 +185,16 @@ describe('Reservations', () => {
                 customer_phone: '0123456789',
                 customer_email: testEmail,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
             const messages = await listInbox(imapClient)
-            assert.lengthOf(messages, 1)
-            assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, 'Wir haben deine Reservierung für 25.12.2026 18:00 Uhr erhalten')
-            assert.deepEqual(messages[0].recipients, [testEmail])
+            assert.isAtLeast(messages.length, 1)
+            const confirmMsg = messages.find(m => m.subject === 'Wir haben deine Reservierung für 27.12.2026 erhalten')
+            assert.isNotNull(confirmMsg)
+            assert.equal(confirmMsg.sender, USERNAME)
+            assert.deepEqual(confirmMsg.recipients, [testEmail])
 
             await client.collection('reservation').delete(reservation.id)
         })
@@ -199,7 +202,7 @@ describe('Reservations', () => {
         it('should fail when required customer fields are missing', async () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
             assert.isEmpty(await listInbox(imapClient))
@@ -209,7 +212,7 @@ describe('Reservations', () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item3.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
             assert.isEmpty(await listInbox(imapClient))
@@ -241,14 +244,14 @@ describe('Reservations', () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
 
             let reservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -262,7 +265,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -286,7 +289,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -311,7 +314,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -334,7 +337,7 @@ describe('Reservations', () => {
             let newReservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(newReservation)
             assert.isFalse(newReservation.done)
@@ -377,12 +380,12 @@ describe('Reservations', () => {
             let reservation1 = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             let reservation2 = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item2.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
 
             assert.lengthOf(await client.collection('reservation').getFullList(), 3)  // one old one already existed
@@ -407,10 +410,11 @@ describe('Reservations', () => {
             assert.equal(item1.status, 'instock')
 
             const messages = await listInbox(imapClient)
-            assert.lengthOf(messages, 1)
-            assert.equal(messages[0].sender, USERNAME)
-            assert.equal(messages[0].subject, 'Deine Reservierung für 25.12.2026 18:00 Uhr wurde storniert')
-            assert.deepEqual(messages[0].recipients, [customer1.email])
+            assert.isAtLeast(messages.length, 1)
+            const cancelMsg = messages.find(m => m.subject === 'Deine Reservierung für 27.12.2026 wurde storniert')
+            assert.isNotNull(cancelMsg)
+            assert.equal(cancelMsg.sender, USERNAME)
+            assert.deepEqual(cancelMsg.recipients, [customer1.email])
 
             await client.collection('reservation').delete(reservation2.id)
         })

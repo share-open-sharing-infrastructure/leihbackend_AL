@@ -40,8 +40,12 @@ onRecordAfterCreateSuccess((e) => {
     e.next()
 
     if (!NO_WELCOME) {
-        $app.logger().info(`Sending welcome mail to ${e.record.getString('email')}.`)
-        sendWelcomeMail(e.record)
+        try {
+            $app.logger().info(`Sending welcome mail to ${e.record.getString('email')}.`)
+            sendWelcomeMail(e.record)
+        } catch (err) {
+            $app.logger().error(`Failed to send welcome mail to ${e.record.getString('email')} – ${err}.`)
+        }
     }
 
     try {
@@ -50,7 +54,11 @@ onRecordAfterCreateSuccess((e) => {
         $app.logger().error(`Failed to send admin notification for new customer ${e.record.id} – ${err}.`)
     }
 
-    syncSubscriber(e.record, null)
+    try {
+        syncSubscriber(e.record, null)
+    } catch (err) {
+        $app.logger().error(`Failed to sync subscriber for ${e.record.id} – ${err}.`)
+    }
 }, 'customer')
 
 onRecordAfterUpdateSuccess((e) => {

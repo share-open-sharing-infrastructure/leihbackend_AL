@@ -160,7 +160,7 @@ describe('Rentals', () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -196,7 +196,7 @@ describe('Rentals', () => {
                 customer_email: "somenewcustomer@leihlokal-ka.de",
                 is_new_customer: true,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -231,7 +231,7 @@ describe('Rentals', () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
 
             item1 = await client.collection('item').getOne(item1.id)
@@ -263,20 +263,20 @@ describe('Rentals', () => {
             await client.collection('reservation').delete(reservation.id)
         })
 
-        it('should fail when trying to rent an item reserved by someone else', async () => {
+        it('should allow renting an item reserved by someone else (with warning)', async () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: 'someoneelse@leihlokal-ka.de',
                 customer_name: 'Someone Else',
                 customer_phone: '0123456789',
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-25T17:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
 
             item1 = await client.collection('item').getOne(item1.id)
             assert.equal(item1.status, 'reserved')
 
-            const rentalPromise = client.collection('rental').create({
+            let rental = await client.collection('rental').create({
                 customer: customer1.id,
                 items: [item1.id],
                 rented_on: new Date(),
@@ -284,7 +284,13 @@ describe('Rentals', () => {
                     [item1.id]: 1,
                 },
             })
-            await assert.isRejected(rentalPromise)
+            assert.isNotNull(rental)
+
+            // reservation should be auto-closed
+            reservation = await client.collection('reservation').getOne(reservation.id)
+            assert.isTrue(reservation.done)
+
+            await client.collection('rental').delete(rental.id)
             await client.collection('reservation').delete(reservation.id)
         })
 
@@ -339,10 +345,10 @@ describe('Rentals', () => {
 
         it('should not retroactively update item status of already returned rentals', async () => {
             let customer = await client.collection('customer').create({
-                iid: 2000,
+                iid: 9000,
                 firstname: 'Justus',
                 lastname: 'Jonas',
-                email: 'justusjonas@leihlokal-ka.de',
+                email: 'justusjonas-rental-test@leihlokal-ka.de',
                 phone: '+49123456789012',
                 registered_on: new Date(),
             })

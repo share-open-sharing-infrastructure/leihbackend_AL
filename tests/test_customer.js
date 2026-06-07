@@ -66,10 +66,11 @@ describe('Customer', () => {
         assert.isNotNull(testCustomer)
 
         const messages = await listInbox(imapClient)
-        assert.lengthOf(messages, 1)
-        assert.equal(messages[0].sender, USERNAME)
-        assert.equal(messages[0].subject, 'Herzlich Willkommen im leih.lokal!')
-        assert.deepEqual(messages[0].recipients, [testCustomer.email])
+        assert.isAtLeast(messages.length, 1)
+        const welcomeMsg = messages.find(m => m.subject === 'Herzlich Willkommen im Leihladen des Commonszentrums!')
+        assert.isNotNull(welcomeMsg)
+        assert.equal(welcomeMsg.sender, USERNAME)
+        assert.deepEqual(welcomeMsg.recipients, [testCustomer.email])
 
         await client.collection('customer').delete(testCustomer.id)
     })

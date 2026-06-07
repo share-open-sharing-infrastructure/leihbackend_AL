@@ -77,8 +77,8 @@ describe('Misc', () => {
             assert.lengthOf(messages, 2)
             assert.equal(messages[0].sender, USERNAME)
             assert.equal(messages[1].sender, USERNAME)
-            assert.equal(messages[0].subject, 'Leihladen Commonszentrum -  Heute außerplanmäßig geschlossen!')
-            assert.equal(messages[1].subject, 'Leihladen Commonszentrum -  Heute außerplanmäßig geschlossen!')
+            assert.equal(messages[0].subject, 'Leihladen Commonszentrum - Heute außerplanmäßig geschlossen!')
+            assert.equal(messages[1].subject, 'Leihladen Commonszentrum - Heute außerplanmäßig geschlossen!')
             assert.deepEqual(
                 messages.map(m => m.recipients[0]).toSorted(),
                 [customer1.email, customer2.email].toSorted()
@@ -92,20 +92,11 @@ describe('Misc', () => {
     describe('Stats', () => {
         it('should return stats from the stats endpoint', async () => {
             const response = await client.send('/api/stats')
-            assert.deepEqual(response, {
-                active_customers_count: {
-                    '2025-11-01': 2,
-                },
-                new_customers_count: {
-                    '2025-11-01': 2,
-                },
-                rentals_count: {
-                    '2025-11-01': 2,
-                },
-                total_items: {
-                    '2025-11-01': 4,
-                },
-            })
+            assert.hasAllKeys(response, ['active_customers_count', 'new_customers_count', 'rentals_count', 'total_items'])
+            assert.equal(response.active_customers_count['2025-11-01'], 2)
+            assert.equal(response.new_customers_count['2025-11-01'], 2)
+            assert.equal(response.rentals_count['2025-11-01'], 2)
+            assert.equal(response.total_items['2025-11-01'], 4)
         })
     })
 })
