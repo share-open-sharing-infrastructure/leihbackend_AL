@@ -1,0 +1,28 @@
+{{define "body"}}
+<p>Liebe/r Ausleihende:r,</p>
+
+<p>wir möchten dich daran erinnern, dass du morgen einen Abholtermin bei uns hast.</p><br>
+
+<p>Bitte komm zu den vereinbarten Zeiten vorbei, um deine reservierten Gegenstände abzuholen.</p>
+
+{{ if .otp }}
+<div style="background-color: rgb(89, 122, 216); color: white; padding: 30px; margin: 30px 0; text-align: center; border-radius: 8px;">
+    <p style="margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 2px;">DEIN ABHOLCODE</p>
+    <p style="margin: 15px 0 0 0; font-size: 48px; font-weight: bold; letter-spacing: 8px;">{{ .otp }}</p>
+</div><br>
+<p style="text-align: center; color: #666; font-size: 14px; margin-top: -20px;">Bitte zeige diesen Code bei der Abholung vor.</p>
+{{ end }}
+
+<h2 style="color: rgb(89, 122, 216); margin-top: 40px;">Reservierte Gegenstände</h2>
+<ul style="list-style: none; padding: 0; margin: 0;">
+    {{ range $item := .items }}
+    <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(89, 122, 216);">
+        <strong>{{ $item.iid }}</strong> – {{ $item.name }}
+    </li>
+    {{ end }}
+</ul>
+
+<p style="margin-top: 30px;">Falls du den Termin nicht wahrnehmen kannst, sag bitte rechtzeitig per E-Mail ab oder nutze den Stornierungslink aus deiner Reservierungsbestätigung.</p>
+
+<p style="margin-top: 40px; font-size: 12px; color: #666; font-style: italic;">Diese Email wurde automatisch generiert. Sie kann daher Fehler enthalten. Wir bitten dies zu entschuldigen.</p>
+{{end}}

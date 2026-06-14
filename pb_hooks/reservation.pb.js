@@ -125,3 +125,9 @@ cronAdd('clear_reservations', "0 22 * * *", () => {
     const { clearReservations } = require(`${__hooks}/jobs/reservation.js`)
     clearReservations()
 })
+
+// note: cron dates are UTC
+cronAdd('send_pickup_reminders', "0 9 * * *", () => {
+    const { sendPickupReminders } = require(`${__hooks}/jobs/reservation.js`)
+    sendPickupReminders()
+})

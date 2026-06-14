@@ -19,6 +19,14 @@ function getTodaysReservations(app = $app) {
     return records
 }
 
+function getPickupTomorrowReservations(app = $app) {
+    const records = app.findAllRecords('reservation',
+        $dbx.exp("substr(pickup, 0, 11) = date(current_date, '+1 day')"),
+        $dbx.hashExp({ done: false })
+    )
+    return records
+}
+
 function remove(r, app = $app) {
     app.delete(r)
     app.logger().info(`Deleted reservation ${r.id} (${r.getString('iid')}).`)
@@ -275,6 +283,42 @@ function sendConfirmationMail(r) {
     if (!DRY_MODE && !IMPORT_MODE) $app.newMailClient().send(message)
 }
 
+function sendPickupReminderMail(r) {
+    const { fmtDate } = require(`${__hooks}/utils/common.js`)
+    const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
+
+    // Skip email if on_premises is true
+    if (r.getBool('on_premises')) {
+        return
+    }
+
+    $app.expandRecord(r, ['items'], null)
+
+    const customerEmail = r.getString('customer_email')
+    const pickupDateStr = fmtDate(r.getDateTime('pickup'))
+
+    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/pickup_reminder.html`).render({
+        items: r.expandedAll('items').map((i) => ({
+            iid: i.getInt('iid'),
+            name: i.getString('name'),
+        })),
+        otp: r.getString('otp'),
+    })
+
+    const message = new MailerMessage({
+        from: {
+            address: $app.settings().meta.senderAddress,
+            name: $app.settings().meta.senderName,
+        },
+        to: [{ address: customerEmail }],
+        subject: `Leihladen Commonszentrum - Abholung morgen (${pickupDateStr})`,
+        html,
+    })
+
+    $app.logger().info(`Sending pickup reminder mail for reservation ${r.id} to customer ${customerEmail}.`)
+    if (!DRY_MODE && !IMPORT_MODE) $app.newMailClient().send(message)
+}
+
 function sendCancellationMail(r) {
     const { fmtDate } = require(`${__hooks}/utils/common.js`)
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
@@ -309,10 +353,12 @@ module.exports = {
     remove,
     exportCsv,
     sendConfirmationMail,
+    sendPickupReminderMail,
     sendCancellationMail,
     validate,
     autofillCustomer,
     updateItems,
     countActiveByItem,
     getTodaysReservations,
+    getPickupTomorrowReservations,
 }

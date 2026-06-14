@@ -22,6 +22,17 @@ function clearReservations() {
     pastReservations.forEach((r) => reservationService.markAsDone(r))
 }
 
+function sendPickupReminders() {
+    const reservationService = require(`${__hooks}/services/reservation.js`)
+
+    const reservations = reservationService.getPickupTomorrowReservations()
+    for (const r of reservations) {
+        reservationService.sendPickupReminderMail(r)
+        sleep(1000)
+    }
+}
+
 module.exports = {
-    clearReservations
+    clearReservations,
+    sendPickupReminders,
 }
