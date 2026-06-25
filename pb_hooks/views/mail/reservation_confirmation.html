@@ -1,7 +1,8 @@
 {{define "body"}}
 <p>Liebe/r Ausleihende:r,</p>
 
-<p>Wir haben Deine Reservierung erhalten. Wir werden diese baldmöglich bearbeiten und den Gegenstand (falls er verfügbar ist) für Dich bis zum Termin zurücklegen.</p>
+<p>Wir haben Deine Reservierung erhalten. <strong>Falls du zum ersten mal etwas bei uns ausleihst</strong>, fülle bitte den <a href="https://tally.so/r/jaGazx" style="color: rgb(89, 122, 216);">Nutzungsantrag</a> vorab aus. Du kannst das aber auch auf Papier vor Ort machen.
+Wir werden Deine Reservierung bearbeiten und den Gegenstand (falls er verfügbar ist) für Dich bis zum Termin zurücklegen.</p>
 
 {{ if .otp }}
 <div style="background-color: rgb(89, 122, 216); color: white; padding: 30px; margin: 30px 0; text-align: center; border-radius: 8px;">
@@ -11,7 +12,7 @@
 <p style="text-align: center; color: #666; font-size: 14px; margin-top: -20px;">Bitte zeige diesen Code bei der Abholung vor.</p>
 {{ end }}
 
-<p><strong>Wichtiger Hinweis:</strong> Falls du zum ersten mal etwas bei uns ausleihst, fülle bitte den <a href="https://tally.so/r/jaGazx" style="color: rgb(89, 122, 216);">Nutzungsantrag</a> vorab aus. Du kannst das aber auch auf Papier vor Ort machen.</p>
+
 
 <p>Um den Termin wieder abzusagen, klicke bitte auf folgenden Link <a href="{{ .cancel_link }}" style="color: rgb(89, 122, 216);">Termin absagen</a> oder schreib uns per Mail.</p>
 
