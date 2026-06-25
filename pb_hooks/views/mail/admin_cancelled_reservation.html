@@ -1,0 +1,27 @@
+{{define "body"}}
+<p><strong>Stornierte Reservierung</strong></p>
+
+<p>Eine Reservierung wurde storniert:</p>
+
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 12px 0; font-weight: bold; width: 180px;">Ausleihende Person:</td>
+        <td style="padding: 12px 0;">{{.customer_name}} ({{.customer_email}})</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 12px 0; font-weight: bold;">Abholtermin:</td>
+        <td style="padding: 12px 0;">{{.pickup}}</td>
+    </tr>
+</table>
+
+<h3 style="color: #333; border-bottom: 2px solid rgb(89, 122, 216); padding-bottom: 8px;">Stornierte Gegenstände</h3>
+<ul style="list-style: none; padding: 0; margin: 0;">
+    {{ range $item := .items }}
+    <li style="padding: 12px; margin: 8px 0; background-color: #f9f9f9; border-left: 4px solid rgb(89, 122, 216);">
+        <strong>{{ $item.iid }}</strong> – {{ $item.name }}
+    </li>
+    {{ end }}
+</ul>
+
+<p style="margin-top: 40px; font-size: 12px; color: #666; font-style: italic;">Diese Email wurde automatisch generiert.</p>
+{{end}}

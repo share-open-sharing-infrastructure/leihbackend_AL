@@ -11,6 +11,14 @@ function handleGetCancel(e) {
         {token}
     )
     const date = fmtDateTime(reservation.getDateTime('pickup'))
+
+    try {
+        const { notifyCancelledReservation } = require(`${__hooks}/services/notification.js`)
+        notifyCancelledReservation(reservation)
+    } catch(e) {
+        $app.logger().error(`Failed to send admin cancellation notification for reservation ${reservation.id} – ${e}.`)
+    }
+
     deleteReservation(reservation)
 
     try {
