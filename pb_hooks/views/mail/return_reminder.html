@@ -3,7 +3,16 @@
 
 <p>morgen wird die Rückgabe eines oder mehrerer Gegenstände fällig. Wir bitten dich, die folgenden Gegenstände morgen zu den Öffnungszeiten zurückzubringen.</p><br>
 
-<p><strong>Verlängerung möglich?</strong> Bei vielen Gegenständen ist es generell möglich, die Ausleihe auf Nachfrage zu verlängern. Bitte frage hierzu per E-Mail nach. Bitte hab Verständnis, dass, je nach Nachfrage des Gegenstandes, eine Verlängerung nicht immer möglich ist.</p><br>
+{{ if .openingHours }}
+<p><strong>Unsere Öffnungszeiten:</strong></p>
+<ul style="list-style: none; padding: 0; margin: 0 0 16px 0;">
+    {{ range $oh := .openingHours }}
+    <li style="padding: 4px 0;">{{ $oh.day }}: {{ $oh.open }} – {{ $oh.close }} Uhr</li>
+    {{ end }}
+</ul>
+{{ end }}
+
+<p><strong>Verlängerung möglich?</strong> Bei den meisten Gegenständen ist es generell möglich, die Ausleihe auf Nachfrage zu verlängern. Bitte frage hierzu per E-Mail nach. Bitte hab Verständnis, dass, je nach Nachfrage des Gegenstandes, eine Verlängerung nicht immer möglich ist.</p><br>
 
 <p>Sollten wir morgen nicht geöffnet haben, gib die Gegenstände einfach am nächsten Öffnungstag ab. Weitere Informationen findest du auf unserer Website.</p>
 
