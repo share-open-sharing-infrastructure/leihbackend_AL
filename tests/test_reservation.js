@@ -416,6 +416,10 @@ describe('Reservations', () => {
             assert.equal(cancelMsg.sender, USERNAME)
             assert.deepEqual(cancelMsg.recipients, [customer1.email])
 
+            const adminCancelMsg = messages.find(m => m.subject.startsWith('Stornierte Reservierung:') && m.subject.endsWith('für 27.12.2026'))
+            assert.isNotNull(adminCancelMsg)
+            assert.deepEqual(adminCancelMsg.recipients, [USERNAME])
+
             await client.collection('reservation').delete(reservation2.id)
         })
     })

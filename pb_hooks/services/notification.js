@@ -76,7 +76,35 @@ function notifyNewReservation(r) {
     sendToAdmins(subject, html)
 }
 
+function notifyCancelledReservation(r) {
+    const { fmtDate } = require(`${__hooks}/utils/common.js`)
+
+    const customerName = r.getString('customer_name')
+    const pickupDate = fmtDate(r.getDateTime('pickup'))
+
+    $app.expandRecord(r, ['items'], null)
+
+    const items = r.expandedAll('items').map((i) => ({
+        iid: i.getInt('iid'),
+        name: i.getString('name'),
+    }))
+
+    const html = $template.loadFiles(
+        `${__hooks}/views/layout.html`,
+        `${__hooks}/views/mail/admin_cancelled_reservation.html`
+    ).render({
+        customer_name: customerName,
+        customer_email: r.getString('customer_email'),
+        pickup: pickupDate,
+        items,
+    })
+
+    const subject = `Stornierte Reservierung: ${customerName} für ${pickupDate}`
+    sendToAdmins(subject, html)
+}
+
 module.exports = {
     notifyNewCustomer,
     notifyNewReservation,
+    notifyCancelledReservation,
 }
