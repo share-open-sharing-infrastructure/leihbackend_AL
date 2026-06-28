@@ -226,8 +226,19 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
 
 // E-Mail Sending
 
+const WEEKDAY_LABELS = {
+    'mon': 'Montag',
+    'tue': 'Dienstag',
+    'wed': 'Mittwoch',
+    'thu': 'Donnerstag',
+    'fri': 'Freitag',
+    'sat': 'Samstag',
+    'sun': 'Sonntag',
+}
+
 function sendReminderMail(r) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
+    const { getOpeningHours } = require(`${__hooks}/services/settings.js`)
 
     $app.expandRecord(r, ['items', 'customer'], null)
 
@@ -236,7 +247,14 @@ function sendReminderMail(r) {
     // Get requested_copies to show copy counts in email
     const requestedCopies = r.get('requested_copies') || {}
 
+    const openingHours = getOpeningHours().map(([day, open, close]) => ({
+        day: WEEKDAY_LABELS[day] || day,
+        open,
+        close,
+    }))
+
     const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/return_reminder.html`).render({
+        openingHours,
         items: r.expandedAll('items').map((i) => {
             const copyCount = requestedCopies[i.id] || 1
             return {

@@ -54,6 +54,7 @@ function notifyNewReservation(r) {
     const { fmtDate } = require(`${__hooks}/utils/common.js`)
 
     const customerName = r.getString('customer_name')
+    const customerEmail = r.getString('customer_email')
     const pickupDate = fmtDate(r.getDateTime('pickup'))
 
     $app.expandRecord(r, ['items'], null)
@@ -68,6 +69,7 @@ function notifyNewReservation(r) {
         `${__hooks}/views/mail/admin_new_reservation.html`
     ).render({
         customer_name: customerName,
+        customer_email: customerEmail,
         pickup: pickupDate,
         items,
     })
