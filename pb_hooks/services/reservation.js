@@ -19,7 +19,7 @@ function countReservedCopies(itemId, excludeReservationId = null, app = $app) {
     return reservations
         .filter(r => r.id !== excludeReservationId)
         .reduce((sum, r) => {
-            const rc = r.get('requested_copies') || {}
+            const rc = JSON.parse(r.getRaw('requested_copies') || '{}') || {}
             return sum + (rc[itemId] ?? 1)
         }, 0)
 }
@@ -116,9 +116,10 @@ function validateFields(r) {
     }
 }
 
-function validateStatus(r) {
+function validateStatus(r, excludeId = null) {
     $app.expandRecord(r, ['items'], null)
-    const requestedCopies = r.get('requested_copies') || {}
+    const requestedCopies = JSON.parse(r.getRaw('requested_copies') || '{}') || {}
+    const rentalService = require(`${__hooks}/services/rental.js`)
     const errors = []
     for (const item of r.expandedAll('items')) {
         if (item.getString('status') !== 'instock') {
@@ -126,8 +127,9 @@ function validateStatus(r) {
             continue
         }
         const copies = item.getInt('copies') || 1
-        const alreadyReserved = countReservedCopies(item.id, null, $app)
-        const remaining = copies - alreadyReserved
+        const alreadyReserved = countReservedCopies(item.id, excludeId, $app)
+        const alreadyRented = rentalService.countCopiesActiveByItem(item.id, $app)
+        const remaining = copies - alreadyReserved - alreadyRented
         const requested = requestedCopies[item.id] ?? 1
         if (requested > remaining) errors.push(item.getInt('iid'))
     }
@@ -209,22 +211,28 @@ function autofillCustomer(record, app = $app) {
     return record
 }
 
-// update item statuses based on current total reserved copies across all active reservations
+// update item statuses based on current total reserved+rented copies
 // called from execute hooks after the reservation record is already saved/deleted in DB
 function updateItems(reservation, oldReservation = null, isDelete = false, app = $app) {
     const itemService = require(`${__hooks}/services/item.js`)
+    const rentalService = require(`${__hooks}/services/rental.js`)
 
     const itemIdsNew = isDelete ? [] : reservation.getStringSlice('items')
     const itemIdsOld = oldReservation?.getStringSlice('items') || []
     const affectedIds = [...new Set([...itemIdsNew, ...itemIdsOld])]
 
     affectedIds.forEach((itemId) => {
-        const item = app.findRecordById('item', itemId)
+        let item
+        try { item = app.findRecordById('item', itemId) } catch { return }
         const copies = item.getInt('copies') || 1
-        const totalReserved = countReservedCopies(itemId, null, app)
         const itemStatus = item.getString('status')
 
-        if (totalReserved >= copies) {
+        if (!['instock', 'reserved'].includes(itemStatus)) return
+
+        const totalReserved = countReservedCopies(itemId, null, app)
+        const totalRented = rentalService.countCopiesActiveByItem(itemId, app)
+
+        if (totalReserved + totalRented >= copies) {
             if (itemStatus === 'instock') itemService.setStatus(item, 'reserved', app)
         } else {
             if (itemStatus === 'reserved') itemService.setStatus(item, 'instock', app)

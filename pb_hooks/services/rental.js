@@ -176,8 +176,9 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
         if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
-        // Auto-close matching reservations when renting a reserved item.
-        if (numRequested > 0 && itemStatus === 'reserved') {
+        // Auto-close matching reservations when creating a new rental for this item.
+        // Note: closes all active reservations for the item; multi-reservation refinement is a follow-up.
+        if (numRequested > 0) {
             try {
                 const activeReservations = app.findRecordsByFilter('reservation', `items ~ '${itemId}' && done = false`)
                 activeReservations.forEach((r) => {
@@ -212,9 +213,9 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         } else if (numRemaining > 0) {
             if (!['outofstock', 'instock', 'reserved'].includes(itemStatus)) return // don't make repairing, deleted, etc. available again when old rental was deleted or sth.
 
-            // If a rental is returned (or deleted from the database) and we do have an active reservation, reset the item's availability status to "reserved" to avoid inconsistencies.
-            // To make it "instock" again, clear the reservation entry or mark it as done.
-            const status = numReservations > 0 ? 'reserved' : 'instock'
+            // Set to reserved if all remaining copies are spoken for by active reservations.
+            const reservedCopies = reservationService.countReservedCopies(itemId, null, app)
+            const status = reservedCopies >= numRemaining ? 'reserved' : 'instock'
 
             app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
             itemService.setStatus(item, status, app)

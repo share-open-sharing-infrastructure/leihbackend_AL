@@ -262,7 +262,7 @@ migrate((app) => {
 
   return app.save(newCollection)
 }, (app) => {
-  // revert: restore view without available_copies
+  // revert: restore the 1783200002 state (without null guard)
   const collection = app.findCollectionByNameOrId("pbc_1144690392")
   app.delete(collection)
 
@@ -498,6 +498,18 @@ migrate((app) => {
         "required": false,
         "system": false,
         "type": "bool"
+      },
+      {
+        "hidden": false,
+        "id": "_computed_available_copies",
+        "max": null,
+        "min": null,
+        "name": "available_copies",
+        "onlyInt": true,
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "number"
       }
     ],
     "id": "pbc_1144690392",
@@ -507,7 +519,7 @@ migrate((app) => {
     "system": false,
     "type": "view",
     "updateRule": null,
-    "viewQuery": "select id, iid, name, description, status, deposit, images, synonyms, category, brand, model, packaging, manual, parts, copies, added_on, is_protected from item where status != 'deleted';",
+    "viewQuery": "SELECT item.id, item.iid, item.name, item.description, item.status, item.deposit, item.images, item.synonyms, item.category, item.brand, item.model, item.packaging, item.manual, item.parts, item.copies, item.added_on, item.is_protected, (item.copies - COALESCE((SELECT SUM(COALESCE((SELECT CAST(jrc.value AS INTEGER) FROM json_each(r.requested_copies) jrc WHERE jrc.key = item.id LIMIT 1), 1)) FROM reservation r WHERE r.done = 0 AND EXISTS (SELECT 1 FROM json_each(r.items) ji WHERE ji.value = item.id)), 0) - COALESCE((SELECT SUM(COALESCE((SELECT CAST(jrn.value AS INTEGER) FROM json_each(rn.requested_copies) jrn WHERE jrn.key = item.id LIMIT 1), 1)) FROM rental rn WHERE (rn.returned_on = '' OR rn.returned_on IS NULL) AND EXISTS (SELECT 1 FROM json_each(rn.items) ji WHERE ji.value = item.id)), 0)) AS available_copies FROM item WHERE item.status != 'deleted'",
     "viewRule": ""
   })
 
