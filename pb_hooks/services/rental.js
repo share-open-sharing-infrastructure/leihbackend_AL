@@ -176,16 +176,20 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
         if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
-        // Auto-close matching reservations when creating a new rental for this item.
-        // Note: closes all active reservations for the item; multi-reservation refinement is a follow-up.
+        // Auto-close this customer's reservation(s) for the item when a rental is created.
         if (numRequested > 0) {
             try {
+                const customer = app.findRecordById('customer', rental.getString('customer'))
+                const customerEmail = customer.getString('email').toLowerCase()
                 const activeReservations = app.findRecordsByFilter('reservation', `items ~ '${itemId}' && done = false`)
-                activeReservations.forEach((r) => {
-                    r.set('done', true)
-                    app.save(r)
-                    app.logger().info(`Auto-closed reservation ${r.id} for item ${item.getInt('iid')} upon rental`)
-                })
+                const match = activeReservations
+                    .filter(r => r.getString('customer_email').toLowerCase() === customerEmail)
+                    .sort((a, b) => a.getString('pickup') < b.getString('pickup') ? -1 : 1)[0]
+                if (match) {
+                    match.set('done', true)
+                    app.save(match)
+                    app.logger().info(`Auto-closed reservation ${match.id} for item ${item.getInt('iid')} upon rental by ${customerEmail}`)
+                }
             } catch (e) {
                 app.logger().warn(`Failed to auto-close reservations for item ${item.getInt('iid')}: ${e}`)
             }
