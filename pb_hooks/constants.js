@@ -10,7 +10,8 @@ const WEEKDAYS = {
 
 // in local timezone
 const OPENING_HOURS = [
-    ['sun', '11:00', '15:00'],
+    ['wed', '17:00', '21:00'],
+    ['sat', '11:00', '15:00'],
 ]
 
 const INACTIVE_MONTHS = $os.getenv('LL_INACTIVE_MONTHS')
