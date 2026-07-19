@@ -12,9 +12,11 @@ function countActiveByItem(itemId, app = $app) {
 
 function countCopiesActiveByItem(itemId, app = $app) {
     // TODO: implement in sql instead of js
+    const { tryParseJson } = require(`${__hooks}/utils/common.js`)
     const activeRentals = app.findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
     return activeRentals
-        .map((r) => r.get('requested_copies')[itemId] || 1) // 1 for legacy support
+        .map((r) => tryParseJson(r.getRaw('requested_copies')))
+        .map((rc) => (rc && !isNaN(rc[itemId])) ? rc[itemId] : 1) // 1 for legacy support
         .reduce((acc, count) => acc + count, 0)
 }
 
