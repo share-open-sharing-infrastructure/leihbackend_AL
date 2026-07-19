@@ -125,7 +125,7 @@ function validateStatus(rental, app = $app) {
         }
 
         const numTotal = item.getInt('copies')
-        const numAvailable = numTotal - countCopiesActiveByItem(item)
+        const numAvailable = numTotal - countCopiesActiveByItem(item.id, app)
         const numRequested = requestedCopies && item.id in requestedCopies ? requestedCopies[item.id] : 1 // backwards compatibility
         if (numRequested > numAvailable) throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
     }
