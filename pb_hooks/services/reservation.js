@@ -122,7 +122,7 @@ function validateStatus(r, excludeId = null) {
     const rentalService = require(`${__hooks}/services/rental.js`)
     const errors = []
     for (const item of r.expandedAll('items')) {
-        if (item.getString('status') !== 'instock') {
+        if (!['instock', 'reserved'].includes(item.getString('status'))) {
             errors.push(item.getInt('iid'))
             continue
         }
