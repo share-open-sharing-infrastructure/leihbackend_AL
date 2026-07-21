@@ -1,14 +1,16 @@
 // Important: every write operation run as part of a transactional event hook must use the event's txApp instead of global $app. See reservation.pb.js for details.
 
-function countActiveByItem(itemId, app = $app) {
-    const result = new DynamicModel({ cnt: 0 })
-    app.db()
-        .select('count(*) as cnt')
-        .from('reservation')
-        .where($dbx.exists($dbx.exp('select 1 from json_each(items) where json_each.value = {:itemId}', { itemId })))
-        .andWhere($dbx.exp('done = false'))
-        .one(result)
-    return result.cnt
+function countReservedCopies(itemId, excludeReservationId = null, app = $app) {
+    const reservations = app.findAllRecords('reservation',
+        $dbx.exists($dbx.exp('select 1 from json_each(items) where json_each.value = {:itemId}', { itemId })),
+        $dbx.hashExp({ done: false })
+    )
+    return reservations
+        .filter(r => r.id !== excludeReservationId)
+        .reduce((sum, r) => {
+            const rc = JSON.parse(r.getRaw('requested_copies') || '{}') || {}
+            return sum + (rc[itemId] ?? 1)
+        }, 0)
 }
 
 function getTodaysReservations(app = $app) {
@@ -103,20 +105,24 @@ function validateFields(r) {
     }
 }
 
-function validateStatus(r) {
-    // We currently don't consider number of copies here, see comment below for details.
-    const isUnavailable = (item) => item.getString('status') !== 'instock'
-
+function validateStatus(r, excludeId = null) {
     $app.expandRecord(r, ['items'], null)
-
-    const unavailableItems = r
-        .expandedAll('items')
-        .filter(isUnavailable)
-        .map((i) => i.getInt('iid'))
-
-    if (unavailableItems.length) {
-        throw new BadRequestError(`Items ${unavailableItems} not available.`)
+    const requestedCopies = JSON.parse(r.getRaw('requested_copies') || '{}') || {}
+    const rentalService = require(`${__hooks}/services/rental.js`)
+    const errors = []
+    for (const item of r.expandedAll('items')) {
+        if (!['instock', 'reserved'].includes(item.getString('status'))) {
+            errors.push(item.getInt('iid'))
+            continue
+        }
+        const copies = item.getInt('copies') || 1
+        const alreadyReserved = countReservedCopies(item.id, excludeId, $app)
+        const alreadyRented = rentalService.countCopiesActiveByItem(item.id, $app)
+        const remaining = copies - alreadyReserved - alreadyRented
+        const requested = requestedCopies[item.id] ?? 1
+        if (requested > remaining) errors.push(item.getInt('iid'))
     }
+    if (errors.length) throw new BadRequestError(`Items ${errors} not available.`)
 }
 
 function validateProtected(r) {
@@ -194,41 +200,31 @@ function autofillCustomer(record, app = $app) {
     return record
 }
 
-// update item statuses
-// meant to be called right before reservation is saved
+// update item statuses based on current total reserved+rented copies
+// called from execute hooks after the reservation record is already saved/deleted in DB
 function updateItems(reservation, oldReservation = null, isDelete = false, app = $app) {
-    // Note: for simplicity, we're currently not considering the number of copies of an item. If an item is reserved, we simply assume all instance of it to be reserved.
-    // Otherwise things get confusing (e.g. customer reserves an item, but status on the website is still shown as available, etc.).
-
-    // TODO: handle (or forbid) the case where a reservation is marked as done and it's item list is updated at the same time (currently unhandled)
-
     const itemService = require(`${__hooks}/services/item.js`)
+    const rentalService = require(`${__hooks}/services/rental.js`)
 
-    const isDone = reservation.getBool('done') || isDelete
-
-    const itemIdsNew = reservation.getStringSlice('items') // explicitly not using record expansion here, because would yield empty result for whatever reason
+    const itemIdsNew = isDelete ? [] : reservation.getStringSlice('items')
     const itemIdsOld = oldReservation?.getStringSlice('items') || []
+    const affectedIds = [...new Set([...itemIdsNew, ...itemIdsOld])]
 
-    const itemIdsAdded = itemIdsNew.filter((id) => !itemIdsOld.includes(id))
-    const itemIdsRemoved = itemIdsOld.filter((id) => !itemIdsNew.includes(id))
-    const itemIdsUnchanged = itemIdsNew.filter((id) => itemIdsOld.includes(id))
+    affectedIds.forEach((itemId) => {
+        let item
+        try { item = app.findRecordById('item', itemId) } catch { return }
+        const copies = item.getInt('copies') || 1
+        const itemStatus = item.getString('status')
 
-    const itemsAdded = app.findRecordsByIds('item', itemIdsAdded)
-    const itemsRemoved = app.findRecordsByIds('item', itemIdsRemoved)
-    const itemUnchanged = app.findRecordsByIds('item', itemIdsUnchanged)
+        if (!['instock', 'reserved'].includes(itemStatus)) return
 
-    const items = [...itemsAdded, ...itemsRemoved, ...itemUnchanged]
-    items.forEach((item) => {
-        const [itemIid, itemStatus] = [item.getInt('iid'), item.getString('status')]
-        const doUnreserve = isDone || itemIdsRemoved.includes(item.id)
-        const doReserve = !doUnreserve && itemIdsAdded.includes(item.id)
+        const totalReserved = countReservedCopies(itemId, null, app)
+        const totalRented = rentalService.countCopiesActiveByItem(itemId, app)
 
-        if (doUnreserve) {
-            if (itemStatus === 'reserved') return itemService.setStatus(item, 'instock', app) // was reserved -> reservation cleared -> available again
-            app.logger().warn(`Not resetting availability status of item ${item.id} (${itemIid}) upon cleared reservation, because was not marked as reserved (${itemStatus} instead).`)
-        } else if (doReserve) {
-            if (itemStatus !== 'instock') throw new InternalServerError(`Can't set status of item ${item.id} (${itemIid}) to 'reserved', because currently not available (${itemStatus} instead).`)
-            itemService.setStatus(item, 'reserved', app)
+        if (totalReserved + totalRented >= copies) {
+            if (itemStatus === 'instock') itemService.setStatus(item, 'reserved', app)
+        } else {
+            if (itemStatus === 'reserved') itemService.setStatus(item, 'instock', app)
         }
     })
 }
@@ -358,7 +354,7 @@ module.exports = {
     validate,
     autofillCustomer,
     updateItems,
-    countActiveByItem,
+    countReservedCopies,
     getTodaysReservations,
     getPickupTomorrowReservations,
 }

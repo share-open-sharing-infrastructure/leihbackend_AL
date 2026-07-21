@@ -62,6 +62,13 @@ onRecordUpdateRequest((e) => {
     if (!e.record.getBool('done')) {
         const oldRecord = $app.findRecordById('reservation', e.record.id)
         if (oldRecord.getBool('done') && !e.requestEvent.request.url.rawQuery.includes('force=true')) throw new BadRequestError('Can\'t undo a closed reservation')
+
+        const itemsChanged = e.record.getRaw('items') !== oldRecord.getRaw('items')
+        const copiesChanged = e.record.getRaw('requested_copies') !== oldRecord.getRaw('requested_copies')
+        if (itemsChanged || copiesChanged) {
+            const { validateStatus } = require(`${__hooks}/services/reservation.js`)
+            validateStatus(e.record, e.record.id)
+        }
     }
     e.next()
 }, 'reservation')

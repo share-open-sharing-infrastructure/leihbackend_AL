@@ -12,9 +12,11 @@ function countActiveByItem(itemId, app = $app) {
 
 function countCopiesActiveByItem(itemId, app = $app) {
     // TODO: implement in sql instead of js
+    const { tryParseJson } = require(`${__hooks}/utils/common.js`)
     const activeRentals = app.findRecordsByFilter('rental', `items ~ '${itemId}' && returned_on = ''`)
     return activeRentals
-        .map((r) => r.get('requested_copies')[itemId] || 1) // 1 for legacy support
+        .map((r) => tryParseJson(r.getRaw('requested_copies')))
+        .map((rc) => (rc && !isNaN(rc[itemId])) ? rc[itemId] : 1) // 1 for legacy support
         .reduce((acc, count) => acc + count, 0)
 }
 
@@ -123,7 +125,7 @@ function validateStatus(rental, app = $app) {
         }
 
         const numTotal = item.getInt('copies')
-        const numAvailable = numTotal - countCopiesActiveByItem(item)
+        const numAvailable = numTotal - countCopiesActiveByItem(item.id, app)
         const numRequested = requestedCopies && item.id in requestedCopies ? requestedCopies[item.id] : 1 // backwards compatibility
         if (numRequested > numAvailable) throw new BadRequestError(`Item ${item.getInt('iid')} is not available for rental.`)
     }
@@ -176,15 +178,20 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
         // we allow 'reserved' here, because validate() (see above) already features a status check to verify that the to-be-rented item is either instock or reserved by the target customer (or is a new customer reservation)
         if (numRequested > 0 && !['instock', 'reserved'].includes(itemStatus)) throw new BadRequestError(`Can't rent item ${itemId} (${item.getInt('iid')}), because not in stock`)
 
-        // Auto-close matching reservations when renting a reserved item.
-        if (numRequested > 0 && itemStatus === 'reserved') {
+        // Auto-close this customer's reservation(s) for the item when a rental is created.
+        if (numRequested > 0) {
             try {
+                const customer = app.findRecordById('customer', rental.getString('customer'))
+                const customerEmail = customer.getString('email').toLowerCase()
                 const activeReservations = app.findRecordsByFilter('reservation', `items ~ '${itemId}' && done = false`)
-                activeReservations.forEach((r) => {
-                    r.set('done', true)
-                    app.save(r)
-                    app.logger().info(`Auto-closed reservation ${r.id} for item ${item.getInt('iid')} upon rental`)
-                })
+                const match = activeReservations
+                    .filter(r => r.getString('customer_email').toLowerCase() === customerEmail)
+                    .sort((a, b) => a.getString('pickup') < b.getString('pickup') ? -1 : 1)[0]
+                if (match) {
+                    match.set('done', true)
+                    app.save(match)
+                    app.logger().info(`Auto-closed reservation ${match.id} for item ${item.getInt('iid')} upon rental by ${customerEmail}`)
+                }
             } catch (e) {
                 app.logger().warn(`Failed to auto-close reservations for item ${item.getInt('iid')}: ${e}`)
             }
@@ -196,27 +203,22 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
             .map((r) => tryParseJson(r.getRaw('requested_copies')))
             .map((rc) => (rc && !isNaN(rc[itemId])) ? rc[itemId] : 1) // 1 for legacy support
             .reduce((acc, count) => acc + count, 0)
-        // For simplicity, we currently don't consider the number of copies for reservations.
-        // If an item is reserved, we implicitly assume all copies of it to be served, otherwise things get confusing
-        // (e.g. customer reserves an item, but status on the website is still shown as available, etc.).
-        // Accordingly, numReservations should actually never be greater than 1.
-        const numReservations = reservationService.countActiveByItem(itemId, app)
-        // We're not subtracting reservations here, because when creating a new rental to fulfill an existing reservation, we need the item to be considered available.
+        const numReservedCopies = reservationService.countReservedCopies(itemId, null, app)
+        // We're not subtracting reserved copies here, because when creating a new rental to fulfill an existing reservation, we need the item to be considered available.
         // We assume that rentals are only created by responsible and attentative employees who check the reservations table first.
         const numAvailable = numTotal - numRented
         const numRemaining = numAvailable - numRequested
 
         if (numRemaining == 0) {
-            app.logger().info(`Setting item ${item.id} to outofstock (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
+            app.logger().info(`Setting item ${item.id} to outofstock (${numRented} copies rented, ${numAvailable} available, ${numReservedCopies} copies reserved)`)
             itemService.setStatus(item, 'outofstock', app)
         } else if (numRemaining > 0) {
             if (!['outofstock', 'instock', 'reserved'].includes(itemStatus)) return // don't make repairing, deleted, etc. available again when old rental was deleted or sth.
 
-            // If a rental is returned (or deleted from the database) and we do have an active reservation, reset the item's availability status to "reserved" to avoid inconsistencies.
-            // To make it "instock" again, clear the reservation entry or mark it as done.
-            const status = numReservations > 0 ? 'reserved' : 'instock'
+            // Set to reserved if all remaining copies are spoken for by active reservations.
+            const status = numReservedCopies >= numRemaining ? 'reserved' : 'instock'
 
-            app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
+            app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservedCopies} copies reserved)`)
             itemService.setStatus(item, status, app)
         } else {
             throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state`)
