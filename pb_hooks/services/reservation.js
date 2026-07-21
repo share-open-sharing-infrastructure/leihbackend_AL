@@ -1,16 +1,5 @@
 // Important: every write operation run as part of a transactional event hook must use the event's txApp instead of global $app. See reservation.pb.js for details.
 
-function countActiveByItem(itemId, app = $app) {
-    const result = new DynamicModel({ cnt: 0 })
-    app.db()
-        .select('count(*) as cnt')
-        .from('reservation')
-        .where($dbx.exists($dbx.exp('select 1 from json_each(items) where json_each.value = {:itemId}', { itemId })))
-        .andWhere($dbx.exp('done = false'))
-        .one(result)
-    return result.cnt
-}
-
 function countReservedCopies(itemId, excludeReservationId = null, app = $app) {
     const reservations = app.findAllRecords('reservation',
         $dbx.exists($dbx.exp('select 1 from json_each(items) where json_each.value = {:itemId}', { itemId })),
@@ -365,7 +354,6 @@ module.exports = {
     validate,
     autofillCustomer,
     updateItems,
-    countActiveByItem,
     countReservedCopies,
     getTodaysReservations,
     getPickupTomorrowReservations,

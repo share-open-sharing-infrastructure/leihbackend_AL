@@ -203,27 +203,22 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
             .map((r) => tryParseJson(r.getRaw('requested_copies')))
             .map((rc) => (rc && !isNaN(rc[itemId])) ? rc[itemId] : 1) // 1 for legacy support
             .reduce((acc, count) => acc + count, 0)
-        // For simplicity, we currently don't consider the number of copies for reservations.
-        // If an item is reserved, we implicitly assume all copies of it to be served, otherwise things get confusing
-        // (e.g. customer reserves an item, but status on the website is still shown as available, etc.).
-        // Accordingly, numReservations should actually never be greater than 1.
-        const numReservations = reservationService.countActiveByItem(itemId, app)
-        // We're not subtracting reservations here, because when creating a new rental to fulfill an existing reservation, we need the item to be considered available.
+        const numReservedCopies = reservationService.countReservedCopies(itemId, null, app)
+        // We're not subtracting reserved copies here, because when creating a new rental to fulfill an existing reservation, we need the item to be considered available.
         // We assume that rentals are only created by responsible and attentative employees who check the reservations table first.
         const numAvailable = numTotal - numRented
         const numRemaining = numAvailable - numRequested
 
         if (numRemaining == 0) {
-            app.logger().info(`Setting item ${item.id} to outofstock (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
+            app.logger().info(`Setting item ${item.id} to outofstock (${numRented} copies rented, ${numAvailable} available, ${numReservedCopies} copies reserved)`)
             itemService.setStatus(item, 'outofstock', app)
         } else if (numRemaining > 0) {
             if (!['outofstock', 'instock', 'reserved'].includes(itemStatus)) return // don't make repairing, deleted, etc. available again when old rental was deleted or sth.
 
             // Set to reserved if all remaining copies are spoken for by active reservations.
-            const reservedCopies = reservationService.countReservedCopies(itemId, null, app)
-            const status = reservedCopies >= numRemaining ? 'reserved' : 'instock'
+            const status = numReservedCopies >= numRemaining ? 'reserved' : 'instock'
 
-            app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservations} active reservations)`)
+            app.logger().info(`Setting item ${item.id} to ${status} (${numRented} copies rented, ${numAvailable} available, ${numReservedCopies} copies reserved)`)
             itemService.setStatus(item, status, app)
         } else {
             throw new InternalServerError(`Can't set status of item ${item.id}, because invalid state`)
