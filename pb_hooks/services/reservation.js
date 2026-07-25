@@ -352,6 +352,7 @@ module.exports = {
     sendPickupReminderMail,
     sendCancellationMail,
     validate,
+    validateStatus,
     autofillCustomer,
     updateItems,
     countReservedCopies,
