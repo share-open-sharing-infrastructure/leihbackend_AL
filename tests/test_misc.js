@@ -96,7 +96,7 @@ describe('Misc', () => {
             assert.equal(response.active_customers_count['2025-11-01'], 2)
             assert.equal(response.new_customers_count['2025-11-01'], 2)
             assert.equal(response.rentals_count['2025-11-01'], 2)
-            assert.equal(response.total_items['2025-11-01'], 4)
+            assert.equal(response.total_items['2025-11-01'], 2)
         })
     })
 })

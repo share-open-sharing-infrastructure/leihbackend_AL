@@ -44,36 +44,46 @@ function getMonthlyRentals(app = $app) {
     return Object.fromEntries(results.map(r => [r.month, r.cnt]))
 }
 
-function getMonthlyTotalItems(app = $app) {
-    const sql = ""
-        + "with base as (select date(added_on) as month, count(*) as cnt from item where status != 'deleted' group by month) "
-        + "select month, total from ( "
-        + "select strftime('%Y-%m-01', month) as month, sum(cnt) over (order by month) as total from base "
-        + ") where date(month) >= date(date(), '-5 years')"
+function getMonthlyNewItems(app = $app) {
+    /*
+    select strftime('%Y-%m-01', added_on) as month, count(*) as cnt from item where status != 'deleted' and added_on >= date(date(), '-5 years') group by month;
+    */
 
-    const results = arrayOf(new DynamicModel({
-            month: '',
-            total: 0
-        }))
-    app.db().newQuery(sql).all(results)
-
-    return Object.fromEntries(results.map(r => [r.month, r.total]))
-}
-
-function getMonthlyActiveCustomers(app = $app) {
-    const sql = ""
-        + "with all_months as (select distinct strftime('%Y-%m-01', rented_on) as month from rental where rented_on >= date(date(), '-5 years')) "
-        + "select month, count(distinct r.customer) as cnt "
-        + "from all_months "
-        + "left join rental as r on date(r.rented_on) >= date(month, '-2 months') and date(r.rented_on) < date(month, '+1 month') "
-        + "group by month "
-        + "order by month"
+    const sql = app.db()
+        .select("strftime('%Y-%m-01', added_on) as month")
+        .andSelect("count(*) as cnt")
+        .from("item")
+        .where($dbx.exp("status != 'deleted' and added_on >= date(date(), '-5 years')"))
+        .groupBy("month")
+        .orderBy("month")
 
     const results = arrayOf(new DynamicModel({
         month: '',
         cnt: 0
     }))
-    app.db().newQuery(sql).all(results)
+    sql.all(results)
+
+    return Object.fromEntries(results.map(r => [r.month, r.cnt]))
+}
+
+function getMonthlyActiveCustomers(app = $app) {
+    /*
+    select strftime('%Y-%m-01', rented_on) as month, count(distinct customer) as cnt from rental where rented_on >= date(date(), '-5 years') group by month;
+    */
+
+    const sql = app.db()
+        .select("strftime('%Y-%m-01', rented_on) as month")
+        .andSelect("count(distinct customer) as cnt")
+        .from("rental")
+        .where($dbx.exp("rented_on >= date(date(), '-5 years')"))
+        .groupBy("month")
+        .orderBy("month")
+
+    const results = arrayOf(new DynamicModel({
+        month: '',
+        cnt: 0
+    }))
+    sql.all(results)
 
     return Object.fromEntries(results.map(r => [r.month, r.cnt]))
 }
@@ -82,7 +92,7 @@ function getStats(app = $app) {
     const newCustomersCount = getMonthlyNewCustomers(app)
     const activeCustomersCount = getMonthlyActiveCustomers(app)
     const rentalsCount = getMonthlyRentals(app)
-    const totalItems = getMonthlyTotalItems(app)
+    const totalItems = getMonthlyNewItems(app)
 
     // fill dates to ensure consistent time grid across all stats
     const months = [...new Set([
@@ -104,7 +114,7 @@ function getStats(app = $app) {
         if (!(currentDateStr in newCustomersCount)) newCustomersCount[currentDateStr] = 0
         if (!(currentDateStr in activeCustomersCount)) activeCustomersCount[currentDateStr] = 0
         if (!(currentDateStr in rentalsCount)) rentalsCount[currentDateStr] = 0
-        if (!(currentDateStr in totalItems)) totalItems[currentDateStr] = 0  // TODO: use previous month value, because cumulative count
+        if (!(currentDateStr in totalItems)) totalItems[currentDateStr] = 0
         currentDate = currentDate.addDate(0, 1, 0)
     }
 
@@ -120,6 +130,6 @@ module.exports = {
     getMonthlyNewCustomers,
     getMonthlyRentals,
     getStats,
-    getMonthlyTotalItems,
+    getMonthlyNewItems,
     getMonthlyActiveCustomers,
 }
