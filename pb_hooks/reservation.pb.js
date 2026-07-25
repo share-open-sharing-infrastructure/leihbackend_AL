@@ -114,7 +114,7 @@ onRecordDeleteExecute((e) => {
         const customerEmail = e.record.getString('customer_email')
         e.next()
         e.app.logger().info(`Deleted reservation ${e.record.id} of ${customerEmail}`)
-        updateItems(e.record, null, true, e.app)
+        updateItems(e.record, e.record, true, e.app)
     })
 }, 'reservation')
 
