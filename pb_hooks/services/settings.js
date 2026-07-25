@@ -10,7 +10,7 @@ function getOpeningHours(app = $app) {
         const records = app.findAllRecords('settings')
         if (!records.length) return OPENING_HOURS
 
-        const raw = records[0].get('opening_hours')
+        const raw = JSON.parse(records[0].getRaw('opening_hours') || 'null')
         if (!raw || !Array.isArray(raw) || raw.length === 0) return OPENING_HOURS
 
         return raw
