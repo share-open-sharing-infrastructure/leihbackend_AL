@@ -244,7 +244,7 @@ function sendConfirmationMail(r) {
     }))
     const depositTotal = items.reduce((sum, i) => sum + i.deposit, 0)
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_confirmation.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/reservation_confirmation.html', {
         pickup: pickupDateStr,
         customer_name: r.getString('customer_name'),
         customer_iid: r.getInt('customer_iid'),
@@ -284,7 +284,7 @@ function sendPickupReminderMail(r) {
     const customerEmail = r.getString('customer_email')
     const pickupDateStr = fmtDate(r.getDateTime('pickup'))
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/pickup_reminder.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/pickup_reminder.html', {
         items: r.expandedAll('items').map((i) => ({
             iid: i.getInt('iid'),
             name: i.getString('name'),
@@ -318,7 +318,7 @@ function sendCancellationMail(r) {
     const customerEmail = r.getString('customer_email')
     const pickupDateStr = fmtDate(r.getDateTime('pickup'))
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_cancellation.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/reservation_cancellation.html', {
         pickup: pickupDateStr,
     })
 

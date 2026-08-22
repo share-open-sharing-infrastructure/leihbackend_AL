@@ -75,14 +75,14 @@ function sendWelcomeMail(c) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
     const customerEmail = c.getString('email')
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/customer_welcome.html`
-    ).render({
-        firstname: c.getString('firstname'),
-        lastname: c.getString('lastname'),
-        iid: c.getInt('iid'),
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/customer_welcome.html',
+        {
+            firstname: c.getString('firstname'),
+            lastname: c.getString('lastname'),
+            iid: c.getInt('iid'),
+        }
+    )
 
     const message = new MailerMessage({
         from: {
@@ -101,13 +101,13 @@ function sendEmergencyClosingMail(c) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
     const customerEmail = c.getString('email')
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/emergency_closing.html`
-    ).render({
-        firstname: c.getString('firstname'),
-        lastname: c.getString('lastname'),
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/emergency_closing.html',
+        {
+            firstname: c.getString('firstname'),
+            lastname: c.getString('lastname'),
+        }
+    )
 
     const message = new MailerMessage({
         from: {
@@ -126,13 +126,13 @@ function sendDeletionReminderMail(c) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
     const customerEmail = c.getString('email')
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/deletion_reminder.html`
-    ).render({
-        firstname: c.getString('firstname'),
-        lastname: c.getString('lastname'),
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/deletion_reminder.html',
+        {
+            firstname: c.getString('firstname'),
+            lastname: c.getString('lastname'),
+        }
+    )
 
     const message = new MailerMessage({
         from: {
