@@ -230,7 +230,6 @@ function updateItems(rental, oldRental = null, isDelete = false, app = $app) {
 
 function sendReminderMail(r) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
-    const { toDisplay } = require(`${__hooks}/services/opening-hours.js`)
 
     $app.expandRecord(r, ['items', 'customer'], null)
 
@@ -239,10 +238,7 @@ function sendReminderMail(r) {
     // Get requested_copies to show copy counts in email
     const requestedCopies = r.get('requested_copies') || {}
 
-    const openingHours = toDisplay()
-
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/return_reminder.html`).render({
-        openingHours,
+    const html = require(`${__hooks}/services/mail.js`).render('mail/return_reminder.html', {
         items: r.expandedAll('items').map((i) => {
             const copyCount = requestedCopies[i.id] || 1
             return {

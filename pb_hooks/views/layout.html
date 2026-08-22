@@ -87,7 +87,8 @@
     D-21335 Lüneburg
     kontakt@commonszentrum.de
   
-    Sa - 11-15 Uhr
+    {{ range $oh := .openingHours }}{{ $oh.day }} {{ $oh.open }}-{{ $oh.close }} Uhr
+    {{ end -}}
     </p>
 </footer>
 <div class="redblock"></div>

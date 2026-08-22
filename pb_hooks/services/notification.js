@@ -35,16 +35,16 @@ function notifyNewCustomer(c) {
     const lastname = c.getString('lastname')
     const iid = c.getInt('iid')
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/admin_new_customer.html`
-    ).render({
-        firstname,
-        lastname,
-        iid,
-        email: c.getString('email'),
-        registered_on: fmtDate(c.getDateTime('created')),
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/admin_new_customer.html',
+        {
+            firstname,
+            lastname,
+            iid,
+            email: c.getString('email'),
+            registered_on: fmtDate(c.getDateTime('created')),
+        }
+    )
 
     const subject = `Neue Registrierung: ${firstname} ${lastname} (#${iid})`
     sendToAdmins(subject, html)
@@ -64,15 +64,15 @@ function notifyNewReservation(r) {
         name: i.getString('name'),
     }))
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/admin_new_reservation.html`
-    ).render({
-        customer_name: customerName,
-        customer_email: customerEmail,
-        pickup: pickupDate,
-        items,
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/admin_new_reservation.html',
+        {
+            customer_name: customerName,
+            customer_email: customerEmail,
+            pickup: pickupDate,
+            items,
+        }
+    )
 
     const subject = `Neue Reservierung: ${customerName} für ${pickupDate}`
     sendToAdmins(subject, html)
@@ -91,15 +91,15 @@ function notifyCancelledReservation(r) {
         name: i.getString('name'),
     }))
 
-    const html = $template.loadFiles(
-        `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/admin_cancelled_reservation.html`
-    ).render({
-        customer_name: customerName,
-        customer_email: r.getString('customer_email'),
-        pickup: pickupDate,
-        items,
-    })
+    const html = require(`${__hooks}/services/mail.js`).render(
+        'mail/admin_cancelled_reservation.html',
+        {
+            customer_name: customerName,
+            customer_email: r.getString('customer_email'),
+            pickup: pickupDate,
+            items,
+        }
+    )
 
     const subject = `Stornierte Reservierung: ${customerName} für ${pickupDate}`
     sendToAdmins(subject, html)
