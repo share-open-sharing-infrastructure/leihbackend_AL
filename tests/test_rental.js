@@ -160,7 +160,7 @@ describe('Rentals', () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -196,7 +196,7 @@ describe('Rentals', () => {
                 customer_email: "somenewcustomer@leihlokal-ka.de",
                 is_new_customer: true,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -231,7 +231,7 @@ describe('Rentals', () => {
             let reservation = await client.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
 
             item1 = await client.collection('item').getOne(item1.id)
@@ -269,7 +269,7 @@ describe('Rentals', () => {
                 customer_name: 'Someone Else',
                 customer_phone: '0123456789',
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
