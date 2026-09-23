@@ -24,7 +24,9 @@ function sendToAdmins(subject, html) {
             html,
         })
         $app.newMailClient().send(message)
-        sleep(1000)
+        // A public reservation POST blocks on these sends before the response is
+        // written, so keep the pacing gap short.
+        sleep(200)
     }
 }
 
@@ -46,11 +48,12 @@ function notifyNewCustomer(c) {
         registered_on: fmtDate(c.getDateTime('created')),
     })
 
-    const subject = `Neue Registrierung: ${firstname} ${lastname} (#${iid})`
+    const prefix = c.getString('source') === 'self_service' ? 'Neue Selbstregistrierung' : 'Neue Registrierung'
+    const subject = `${prefix}: ${firstname} ${lastname} (#${iid})`
     sendToAdmins(subject, html)
 }
 
-function notifyNewReservation(r) {
+function notifyNewReservation(r, selfRegistered = false) {
     const { fmtDate } = require(`${__hooks}/utils/common.js`)
 
     const customerName = r.getString('customer_name')
@@ -70,11 +73,15 @@ function notifyNewReservation(r) {
     ).render({
         customer_name: customerName,
         customer_email: customerEmail,
+        customer_iid: r.getInt('customer_iid'),
+        self_registered: selfRegistered,
         pickup: pickupDate,
         items,
     })
 
-    const subject = `Neue Reservierung: ${customerName} für ${pickupDate}`
+    const subject = selfRegistered
+        ? `Neue Reservierung + Selbstregistrierung: ${customerName} für ${pickupDate}`
+        : `Neue Reservierung: ${customerName} für ${pickupDate}`
     sendToAdmins(subject, html)
 }
 

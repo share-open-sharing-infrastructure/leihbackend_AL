@@ -1,3 +1,31 @@
+/* Next free member number.
+   MUST be called with a transactional app so that the read and the subsequent insert
+   are atomic – see customer.pb.js. PocketBase runs write transactions on a single
+   non-concurrent connection, so they serialize and no retry loop is needed; the
+   UNIQUE index on iid remains the backstop. */
+function nextIid(app = $app) {
+    const row = new DynamicModel({ next: 0 })
+    app.db()
+        .newQuery('SELECT COALESCE(MAX(iid), 0) + 1 AS next FROM customer')
+        .one(row)
+    return row.next
+}
+
+/* Look up a customer by email. Returns null when there is no match.
+   Emails are unique as of the idx_customer_email_unique index, so a match is
+   unambiguous; the count check stays as a cheap guard for legacy data. */
+function findByEmail(email, app = $app) {
+    const normalized = email?.trim().toLowerCase()
+    if (!normalized) return null
+    try {
+        const count = app.countRecords('customer', $dbx.hashExp({ email: normalized }))
+        if (count !== 1) return null
+        return app.findFirstRecordByData('customer', 'email', normalized)
+    } catch (e) {
+        return null
+    }
+}
+
 function getUniqueStreets(query, app = $app) {
     const result = arrayOf(new DynamicModel({
         street: ''
@@ -75,13 +103,26 @@ function sendWelcomeMail(c) {
     const { DRY_MODE, IMPORT_MODE } = require(`${__hooks}/constants.js`)
     const customerEmail = c.getString('email')
 
+    // Someone who registered themselves has not been identified by anyone yet, so
+    // they get a variant that echoes their data back for correction and asks them to
+    // bring ID, rather than one that presents the iid as a confirmed membership.
+    const isSelfService = c.getString('source') === 'self_service'
+    const template = isSelfService ? 'customer_welcome_self.html' : 'customer_welcome.html'
+
     const html = $template.loadFiles(
         `${__hooks}/views/layout.html`,
-        `${__hooks}/views/mail/customer_welcome.html`
+        `${__hooks}/views/mail/${template}`
     ).render({
         firstname: c.getString('firstname'),
         lastname: c.getString('lastname'),
         iid: c.getInt('iid'),
+        email: customerEmail,
+        phone: c.getString('phone'),
+        street: c.getString('street'),
+        house_number: c.getString('house_number'),
+        postal_code: c.getString('postal_code'),
+        city: c.getString('city'),
+        consent_version: c.getString('consent_version'),
     })
 
     const message = new MailerMessage({
@@ -90,7 +131,9 @@ function sendWelcomeMail(c) {
             name: $app.settings().meta.senderName,
         },
         to: [{ address: customerEmail }],
-        subject: `Herzlich Willkommen im Leihladen des Commonszentrums!`,
+        subject: isSelfService
+            ? `Deine Registrierung im Leihladen des Commonszentrums`
+            : `Herzlich Willkommen im Leihladen des Commonszentrums!`,
         html,
     })
 
@@ -151,6 +194,8 @@ function sendDeletionReminderMail(c) {
 }
 
 module.exports = {
+    nextIid,
+    findByEmail,
     getUniqueStreets,
     exportCsv,
     getInactive,

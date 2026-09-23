@@ -1,0 +1,67 @@
+{{define "body"}}
+{{ if .firstname }}
+<p>Liebe/r {{.firstname}},</p>
+{{ else }}
+<p>Liebe/r Nutzer:in,</p>
+{{ end }}
+
+<p style="font-size: 18px;"><strong>danke, dass du dich bei uns registriert hast!</strong></p>
+
+<p>Du hast deine Daten bei der Reservierung selbst eingegeben. Wir haben daraus ein Nutzerkonto
+    für dich angelegt – du musst vor Ort nichts mehr ausfüllen.</p>
+
+<div style="background-color: rgb(89, 122, 216); color: white; padding: 20px; margin: 30px 0; text-align: center; border-radius: 8px;">
+    <p style="margin: 0; font-size: 14px; font-weight: bold;">DEINE NUTZERNUMMER</p>
+    <p style="margin: 10px 0 0 0; font-size: 36px; font-weight: bold; letter-spacing: 4px;">{{.iid}}</p>
+</div>
+
+<div style="background-color: #fff4d6; border-left: 4px solid #d99a00; padding: 16px; margin: 30px 0;">
+    <p style="margin: 0;"><strong>Bitte bring zur ersten Abholung einen Ausweis mit.</strong>
+        Wir gleichen deine Angaben einmalig ab, danach ist dein Konto fertig freigeschaltet.</p>
+</div>
+
+<h2 style="color: rgb(89, 122, 216); margin-top: 40px; margin-bottom: 20px;">Deine Angaben</h2>
+<p>Falls etwas nicht stimmt, antworte einfach auf diese Mail – wir korrigieren es.</p>
+<table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px 0; font-weight: bold; width: 140px;">Name:</td>
+        <td style="padding: 10px 0;">{{.firstname}} {{.lastname}}</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px 0; font-weight: bold;">Adresse:</td>
+        <td style="padding: 10px 0;">{{.street}} {{.house_number}}, {{.postal_code}} {{.city}}</td>
+    </tr>
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px 0; font-weight: bold;">E-Mail:</td>
+        <td style="padding: 10px 0;">{{.email}}</td>
+    </tr>
+    {{ if .phone }}
+    <tr style="border-bottom: 1px solid #eee;">
+        <td style="padding: 10px 0; font-weight: bold;">Telefon:</td>
+        <td style="padding: 10px 0;">{{.phone}}</td>
+    </tr>
+    {{ end }}
+</table>
+
+<h2 style="color: rgb(89, 122, 216); margin-top: 30px; margin-bottom: 20px;">Zur Ausleihe</h2>
+<ul style="line-height: 1.8;">
+    <li>Du erhältst einen Tag vor Rückgabe eine Erinnerungsmail.</li>
+    <li>Du kannst die Ausleihe ggf. per Mail verlängern.</li>
+    <li>Solltest du deine Nutzernummer nicht parat haben, können wir dich auch über deinen Namen identifizieren.</li>
+    <li>Wenn etwas mit dem geliehenen Gegenstand nicht funktioniert oder er kaputt geht, melde dich umgehend bei uns per Mail oder Telefon.</li>
+    <li>Wenn du zwei Jahre nichts leihst, werden deine Daten bei uns automatisch gelöscht.</li>
+</ul>
+
+<h2 style="color: rgb(89, 122, 216); margin-top: 30px; margin-bottom: 20px;">Über den Leihladen im Commonszentrum</h2>
+<ul style="line-height: 1.8;">
+    <li>Bei uns kannst du kostenlos Gegenstände leihen.</li>
+    <li>Wir sind ein ehrenamtliches Projekt und freuen uns über deine Mithilfe.</li>
+    <li>Wir suchen immer nach helfenden Händen; melde dich gerne bei uns (z.B. für Ladenschichten, Reparaturen von Gegenständen, Design von Flyern und Website, etc.).</li>
+    <li>Auch mit einer (kleinen) Spende hilfst du uns, denn wir arbeiten komplett spendenfinanziert.</li>
+</ul>
+
+<p style="margin-top: 40px; font-size: 12px; color: #666;">Du hast bei der Registrierung die Leihbedingungen
+    und die Datenschutzerklärung akzeptiert (Fassung {{.consent_version}}).</p>
+
+<p style="margin-top: 20px; font-size: 12px; color: #666; font-style: italic;">Diese Email wurde automatisch generiert. Sie kann daher Fehler enthalten. Wir bitten dies zu entschuldigen.</p>
+{{end}}

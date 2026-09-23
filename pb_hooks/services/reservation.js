@@ -164,8 +164,15 @@ function validatePickup(r) {
 
 // Business logic
 
-function autofillCustomer(record, app = $app) {
+function autofillCustomer(record, isAuthenticated = false, app = $app) {
+    const { findByEmail } = require(`${__hooks}/services/customer.js`)
+
     function getByIid() {
+        // Only staff may address a customer by member number. For anonymous callers
+        // an arbitrary customer_iid would attribute the reservation to a stranger
+        // and send the confirmation mail to them – a harassment and enumeration vector.
+        if (!isAuthenticated) return null
+
         const customerIid = record.getInt('customer_iid')
         if (!customerIid) return null
         try {
@@ -175,26 +182,27 @@ function autofillCustomer(record, app = $app) {
         }
     }
 
-    function getByEmail() {
-        const customerEmail = record.getString('customer_email')?.toLowerCase()
-        if (!customerEmail) return null
-        try {
-            const count = app.countRecords('customer', $dbx.hashExp({ email: customerEmail }))
-            if (count !== 1) return null // emails are not enforced to be unique currently
-            return app.findFirstRecordByData('customer', 'email', customerEmail)
-        } catch (e) {
-            return null
-        }
+    // try to get customer by given iid, otherwise by email, otherwise leave fields empty
+    let customer = getByIid() || findByEmail(record.getString('customer_email'), app)
+    if (!customer) {
+        // An anonymous caller doesn't get to keep an unmatched customer_iid either.
+        if (!isAuthenticated) record.set('customer_iid', 0)
+        return record
     }
 
-    // try to get customer by given iid, otherwise by email, otherwise leave fields empty
-    let customer = getByIid() || getByEmail()
-    if (!customer) return record
+    assignCustomer(record, customer)
 
+    return record
+}
+
+/* Copy the identifying customer details onto a reservation.
+   Shared by the autofill path and by self-service signup so that both produce
+   exactly the same shape. */
+function assignCustomer(record, customer) {
     if (!record.getString('customer_name')) record.set('customer_name', `${customer.getString('firstname')} ${customer.getString('lastname')}`)
     if (!record.getString('customer_phone')) record.set('customer_phone', customer.getString('phone'))
     if (!record.getString('customer_email')) record.set('customer_email', customer.getString('email'))
-    if (!record.getInt('customer_iid')) record.set('customer_iid', customer.getInt('iid'))
+    record.set('customer_iid', customer.getInt('iid'))
     record.set('is_new_customer', false)
 
     return record
@@ -354,6 +362,7 @@ module.exports = {
     validate,
     validateStatus,
     autofillCustomer,
+    assignCustomer,
     updateItems,
     countReservedCopies,
     getTodaysReservations,

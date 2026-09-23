@@ -7,6 +7,22 @@ import { setTimeout } from 'timers/promises'
 
 chai.use(chaiAsPromised)
 
+// A complete, valid self-service signup payload. Individual tests spread this and
+// override one field to check a single validation rule at a time.
+const SIGNUP = {
+    firstname: 'Max',
+    lastname: 'Mustermann',
+    street: 'Kunkelberg',
+    house_number: '2',
+    postal_code: '21335',
+    city: 'Lüneburg',
+    phone: '04131 123456',
+    heard: 'Nachbarschaft',
+    newsletter: false,
+    accepted_terms: true,
+    accepted_privacy: true,
+}
+
 describe('Reservations', () => {
     let client
     let anonymousClient
@@ -50,28 +66,15 @@ describe('Reservations', () => {
     })
 
     describe('Creation', () => {
+        // Note: addressing a customer by iid is a staff-only capability. For anonymous
+        // callers the iid is ignored – see 'should ignore customer_iid from anonymous callers'.
         it('should create a reservation for an existing customer by iid', async () => {
-            let reservation = await anonymousClient.collection('reservation').create({
+            let reservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
                 pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
             assert.isNotNull(reservation)
-            assert.doesNotHaveAnyKeys(reservation, ['customer_iid',
-                'customer_name',
-                'customer_email',
-                'customer_phone',
-                'comments',
-                'done',
-                'is_new_customer',
-                'pickup',
-                'items',
-                'collectionId',
-                'collectionName',
-                'updated',
-                'on_premises',
-                'expand',])
-            assert.doesNotHaveAllKeys(reservation, ['otp'])
 
             reservation = await client.collection('reservation').getOne(reservation.id)
             assert.equal(reservation.customer_name, `${customer1.firstname} ${customer1.lastname}`) // auto-fill
@@ -158,23 +161,36 @@ describe('Reservations', () => {
             await client.collection('reservation').delete(reservation.id)
         })
 
-        it('should not autofill customer info for non-unique email', async () => {
-            const emailCustomer2 = customer2.email
-            await client.collection('customer').update(customer2.id, { email: customer1.email })
+        // Duplicate emails used to be possible, which is why autofill bailed out when it
+        // found more than one match. Emails are unique now, so the situation can no
+        // longer arise – assert that the database refuses to create it in the first place.
+        it('should reject a customer email that already exists', async () => {
+            const promise = client.collection('customer').update(customer2.id, { email: customer1.email })
+            await assert.isRejected(promise)
+        })
 
+        it('should ignore customer_iid from anonymous callers', async () => {
+            // An arbitrary iid from an unauthenticated caller would attribute the
+            // reservation to a stranger and mail the confirmation to them.
+            const testEmail = 'stranger@bobbbob.tld'
             let reservation = await anonymousClient.collection('reservation').create({
-                customer_email: 'johndoe@leihlokal-ka.de',  // customer 1 email
+                customer_iid: 1000,  // john, who has nothing to do with this request
+                customer_email: testEmail,
                 items: [item1.id],
                 pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
             })
 
             reservation = await client.collection('reservation').getOne(reservation.id)
-            assert.equal(reservation.customer_email, customer1.email)
-            assert.isEmpty(reservation.customer_name)  // not required anymore
-            assert.isEmpty(reservation.customer_phone)
             assert.equal(reservation.customer_iid, 0)
+            assert.isEmpty(reservation.customer_name)
+            assert.isEmpty(reservation.customer_phone)
+            assert.equal(reservation.customer_email, testEmail)
+            assert.isTrue(reservation.is_new_customer)
 
-            await client.collection('customer').update(customer2.id, { email: emailCustomer2 })
+            const messages = await listInbox(imapClient)
+            const leaked = messages.find(m => m.recipients.includes(customer1.email))
+            assert.isUndefined(leaked, 'confirmation must not reach the impersonated customer')
+
             await client.collection('reservation').delete(reservation.id)
         })
 
@@ -197,6 +213,165 @@ describe('Reservations', () => {
             assert.deepEqual(confirmMsg.recipients, [testEmail])
 
             await client.collection('reservation').delete(reservation.id)
+        })
+
+        it('should create a reservation and register the customer from signup data', async () => {
+            const testEmail = 'selbst@bobbbob.tld'
+            let reservation = await anonymousClient.collection('reservation').create({
+                customer_email: testEmail,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                signup: { ...SIGNUP },
+            })
+            assert.isNotNull(reservation)
+            // the anonymous response must still not echo any customer data back
+            assert.doesNotHaveAnyKeys(reservation, ['customer_iid', 'customer_name', 'customer_email', 'customer_phone'])
+
+            const customers = await client.collection('customer').getFullList({ filter: `email="${testEmail}"` })
+            assert.lengthOf(customers, 1)
+            const customer = customers[0]
+            assert.equal(customer.firstname, SIGNUP.firstname)
+            assert.equal(customer.lastname, SIGNUP.lastname)
+            assert.equal(customer.street, SIGNUP.street)
+            assert.equal(customer.house_number, SIGNUP.house_number)
+            assert.equal(customer.postal_code, SIGNUP.postal_code)
+            assert.equal(customer.city, SIGNUP.city)
+            assert.equal(customer.source, 'self_service')
+            assert.isNotEmpty(customer.consented_on)
+            assert.isNotEmpty(customer.consent_version)
+            assert.isFalse(customer.newsletter)  // opt-in only
+            assert.isAbove(customer.iid, 0)
+
+            reservation = await client.collection('reservation').getOne(reservation.id)
+            assert.equal(reservation.customer_iid, customer.iid)
+            assert.equal(reservation.customer_name, `${SIGNUP.firstname} ${SIGNUP.lastname}`)
+            assert.isFalse(reservation.is_new_customer)
+
+            const messages = await listInbox(imapClient)
+            assert.isNotNull(messages.find(m => m.subject === 'Deine Registrierung im Leihladen des Commonszentrums'))
+            assert.isNotNull(messages.find(m => m.subject === 'Wir haben deine Reservierung für 27.12.2026 erhalten'))
+
+            await client.collection('reservation').delete(reservation.id)
+            await client.collection('customer').delete(customer.id)
+        })
+
+        it('should reuse an existing customer and ignore the signup payload', async () => {
+            let reservation = await anonymousClient.collection('reservation').create({
+                customer_email: customer1.email,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                signup: { ...SIGNUP, firstname: 'Hacker', lastname: 'McEvil', street: 'Evilstraße' },
+            })
+
+            const customers = await client.collection('customer').getFullList({ filter: `email="${customer1.email}"` })
+            assert.lengthOf(customers, 1, 'must not create a second record')
+            assert.equal(customers[0].firstname, customer1.firstname, 'existing data must not be overwritten')
+            assert.equal(customers[0].street, customer1.street)
+
+            reservation = await client.collection('reservation').getOne(reservation.id)
+            assert.equal(reservation.customer_iid, customer1.iid)
+
+            await client.collection('reservation').delete(reservation.id)
+        })
+
+        // The customer and the reservation share a transaction, so a reservation that
+        // fails validation must leave no customer behind and send no mail.
+        it('should roll back the created customer when the reservation is invalid', async () => {
+            const testEmail = 'rollback@bobbbob.tld'
+            const promise = anonymousClient.collection('reservation').create({
+                customer_email: testEmail,
+                customer_phone: 'not-a-phone-number',  // fails inside the transaction
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                signup: { ...SIGNUP },
+            })
+            await assert.isRejected(promise)
+
+            const customers = await client.collection('customer').getFullList({ filter: `email="${testEmail}"` })
+            assert.isEmpty(customers, 'customer must have been rolled back')
+            // proves the deferred after-success hooks (welcome mail, Loops sync) never ran
+            assert.isEmpty(await listInbox(imapClient))
+        })
+
+        it('should reject a signup without consent', async () => {
+            for (const field of ['accepted_terms', 'accepted_privacy']) {
+                const testEmail = `noconsent-${field}@bobbbob.tld`
+                const promise = anonymousClient.collection('reservation').create({
+                    customer_email: testEmail,
+                    items: [item1.id],
+                    pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                    signup: { ...SIGNUP, [field]: false },
+                })
+                await assert.isRejected(promise)
+                assert.isEmpty(await client.collection('customer').getFullList({ filter: `email="${testEmail}"` }))
+            }
+        })
+
+        it('should reject a signup with missing required fields', async () => {
+            for (const field of ['firstname', 'lastname', 'street', 'house_number', 'postal_code', 'city']) {
+                const testEmail = `missing-${field}@bobbbob.tld`
+                const promise = anonymousClient.collection('reservation').create({
+                    customer_email: testEmail,
+                    items: [item1.id],
+                    pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                    signup: { ...SIGNUP, [field]: '' },
+                })
+                await assert.isRejected(promise)
+                assert.isEmpty(await client.collection('customer').getFullList({ filter: `email="${testEmail}"` }))
+            }
+        })
+
+        it('should reject a signup with an unknown "heard" value', async () => {
+            const testEmail = 'badheard@bobbbob.tld'
+            const promise = anonymousClient.collection('reservation').create({
+                customer_email: testEmail,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                signup: { ...SIGNUP, heard: 'Von einem Raben' },
+            })
+            await assert.isRejected(promise)
+            assert.isEmpty(await client.collection('customer').getFullList({ filter: `email="${testEmail}"` }))
+        })
+
+        it('should allocate sequential iids for consecutive signups', async () => {
+            const emails = ['seq1@bobbbob.tld', 'seq2@bobbbob.tld']
+            const created = []
+            for (const email of emails) {
+                const reservation = await anonymousClient.collection('reservation').create({
+                    customer_email: email,
+                    items: [item1.id],
+                    pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                    signup: { ...SIGNUP },
+                })
+                created.push(reservation.id)
+            }
+
+            const [c1] = await client.collection('customer').getFullList({ filter: `email="${emails[0]}"` })
+            const [c2] = await client.collection('customer').getFullList({ filter: `email="${emails[1]}"` })
+            assert.equal(c2.iid, c1.iid + 1)
+
+            for (const id of created) await client.collection('reservation').delete(id)
+            await client.collection('customer').delete(c1.id)
+            await client.collection('customer').delete(c2.id)
+        })
+
+        it('should create only one customer for two concurrent identical signups', async () => {
+            const testEmail = 'concurrent@bobbbob.tld'
+            const create = () => anonymousClient.collection('reservation').create({
+                customer_email: testEmail,
+                items: [item1.id],
+                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                signup: { ...SIGNUP },
+            })
+            const settled = await Promise.allSettled([create(), create()])
+
+            const customers = await client.collection('customer').getFullList({ filter: `email="${testEmail}"` })
+            assert.lengthOf(customers, 1)
+
+            for (const r of settled.filter(r => r.status === 'fulfilled')) {
+                await client.collection('reservation').delete(r.value.id)
+            }
+            await client.collection('customer').delete(customers[0].id)
         })
 
         it('should fail when required customer fields are missing', async () => {

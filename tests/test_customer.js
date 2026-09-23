@@ -75,6 +75,105 @@ describe('Customer', () => {
         await client.collection('customer').delete(testCustomer.id)
     })
 
+    describe('Member number allocation', () => {
+        // The Verwaltung used to compute the next iid client-side with a `sort: '-iid'`
+        // query, which races. The backend owns it now.
+        it('should auto-assign the next iid when none is provided', async () => {
+            const highest = await client.collection('customer').getFirstListItem('', { sort: '-iid' })
+
+            const created = await client.collection('customer').create({
+                firstname: 'Peter', lastname: 'Shaw',
+                email: 'petershaw@leihlokal-ka.de',
+                street: 'Kunkelberg', house_number: '2',
+                postal_code: '21335', city: 'Lüneburg',
+                registered_on: new Date(),
+            })
+            assert.equal(created.iid, highest.iid + 1)
+            assert.equal(created.source, 'staff')
+
+            await client.collection('customer').delete(created.id)
+        })
+
+        it('should still honour an explicitly provided iid', async () => {
+            const created = await client.collection('customer').create({
+                iid: 9001,
+                firstname: 'Bob', lastname: 'Andrews',
+                email: 'bobandrews@leihlokal-ka.de',
+                street: 'Kunkelberg', house_number: '2',
+                postal_code: '21335', city: 'Lüneburg',
+                registered_on: new Date(),
+            })
+            assert.equal(created.iid, 9001)
+
+            await client.collection('customer').delete(created.id)
+        })
+    })
+
+    describe('Email uniqueness', () => {
+        it('should lowercase and trim emails on create', async () => {
+            const created = await client.collection('customer').create({
+                firstname: 'Justus', lastname: 'Jonas',
+                email: '  MixedCase@Leihlokal-KA.de  ',
+                street: 'Kunkelberg', house_number: '2',
+                postal_code: '21335', city: 'Lüneburg',
+                registered_on: new Date(),
+            })
+            assert.equal(created.email, 'mixedcase@leihlokal-ka.de')
+
+            await client.collection('customer').delete(created.id)
+        })
+
+        it('should reject a duplicate email case-insensitively', async () => {
+            const created = await client.collection('customer').create({
+                firstname: 'Justus', lastname: 'Jonas',
+                email: 'unique-check@leihlokal-ka.de',
+                street: 'Kunkelberg', house_number: '2',
+                postal_code: '21335', city: 'Lüneburg',
+                registered_on: new Date(),
+            })
+
+            const promise = client.collection('customer').create({
+                firstname: 'Peter', lastname: 'Shaw',
+                email: 'UNIQUE-CHECK@leihlokal-ka.de',
+                street: 'Kunkelberg', house_number: '2',
+                postal_code: '21335', city: 'Lüneburg',
+                registered_on: new Date(),
+            })
+            await assert.isRejected(promise)
+
+            await client.collection('customer').delete(created.id)
+        })
+    })
+
+    describe('Existence lookup', () => {
+        // Public endpoint so the resomaker can tell a returning person we already know
+        // them. It must expose nothing beyond the boolean.
+        it('should report known=true for an existing email, case-insensitively', async () => {
+            const customer = await client.collection('customer').getFirstListItem('iid=1000')
+            const res = await anonymousClient.send('/api/customer/exists', {
+                method: 'POST',
+                body: { email: customer.email.toUpperCase() },
+            })
+            assert.deepEqual(res, { known: true })
+        })
+
+        it('should report known=false for an unknown email', async () => {
+            const res = await anonymousClient.send('/api/customer/exists', {
+                method: 'POST',
+                body: { email: 'definitely-not-registered@nowhere.tld' },
+            })
+            assert.deepEqual(res, { known: false })
+        })
+
+        it('should reject a malformed email', async () => {
+            const promise = anonymousClient.send('/api/customer/exists', {
+                method: 'POST',
+                body: { email: 'not-an-email' },
+            })
+            await assert.isRejected(promise)
+        })
+    })
+
     describe('Auto-deletion', () => {
         it('should send deletion notice to old customer', async () => {
             let customer = await client.collection('customer').create({
