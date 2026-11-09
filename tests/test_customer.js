@@ -7,6 +7,13 @@ import { setTimeout } from 'timers/promises'
 
 chai.use(chaiAsPromised)
 
+const ADDRESS = {
+    street: 'Fixture Street',
+    house_number: '1',
+    postal_code: '12345',
+    city: 'Fixture City',
+}
+
 describe('Customer', () => {
     let client
     let anonymousClient
@@ -43,6 +50,7 @@ describe('Customer', () => {
 
     it('should fail to create customer with an existing iid', async () => {
         const promise = client.collection('customer').create({
+            ...ADDRESS,
             iid: 1000,
             firstname: 'Justus',
             lastname: 'Jonas',
@@ -55,6 +63,7 @@ describe('Customer', () => {
 
     it('should send a welcome mail to new customers', async () => {
         let testCustomer = await client.collection('customer').create({
+            ...ADDRESS,
             iid: 2000,
             firstname: 'Justus',
             lastname: 'Jonas',
@@ -177,6 +186,7 @@ describe('Customer', () => {
     describe('Auto-deletion', () => {
         it('should send deletion notice to old customer', async () => {
             let customer = await client.collection('customer').create({
+                ...ADDRESS,
                 iid: 1500,
                 firstname: 'Patrick',
                 lastname: 'Star',
@@ -217,6 +227,7 @@ describe('Customer', () => {
 
         it('should not send deletion notice to customer with recent rental', async () => {
             let customer = await client.collection('customer').create({
+                ...ADDRESS,
                 iid: 1500,
                 firstname: 'SpongeBob',
                 lastname: 'SquarePants',
@@ -247,6 +258,7 @@ describe('Customer', () => {
 
         it('should send deletion notice to customer with old rental', async () => {
             let customer = await client.collection('customer').create({
+                ...ADDRESS,
                 iid: 1500,
                 firstname: 'Patrick',
                 lastname: 'Star',
@@ -280,6 +292,7 @@ describe('Customer', () => {
 
         it('should do nothing while waiting for customers reply', async () => {
             let customer = await client.collection('customer').create({
+                ...ADDRESS,
                 iid: 1500,
                 firstname: 'Patrick',
                 lastname: 'Star',
@@ -305,6 +318,7 @@ describe('Customer', () => {
 
         it('should delete customer after no response to deletion notice', async () => {
             let customer = await client.collection('customer').create({
+                ...ADDRESS,
                 iid: 1500,
                 firstname: 'Patrick',
                 lastname: 'Star',

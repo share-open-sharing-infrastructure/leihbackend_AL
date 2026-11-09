@@ -12,6 +12,26 @@
 const { handlePostEmergencyClosing } = require(`${__hooks}/routes/misc`)
 const { handleGetOpeningHours } = require(`${__hooks}/routes/opening-hours`)
 
+// Record hooks
+// ----- //
+
+// Reject malformed opening_hours writes up-front so bad JSON can't slip in and silently fall back at read time.
+onRecordCreateRequest((e) => {
+    const { validateOpeningHours } = require(`${__hooks}/services/opening-hours.js`)
+
+    validateOpeningHours(e.record.get('opening_hours'))
+
+    e.next()
+}, 'settings')
+
+onRecordUpdateRequest((e) => {
+    const { validateOpeningHours } = require(`${__hooks}/services/opening-hours.js`)
+
+    validateOpeningHours(e.record.get('opening_hours'))
+
+    e.next()
+}, 'settings')
+
 // Routes
 // ----- //
 routerAdd('post', '/api/misc/emergency_closing', handlePostEmergencyClosing, $apis.requireSuperuserAuth())

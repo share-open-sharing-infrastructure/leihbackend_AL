@@ -1,5 +1,5 @@
 function handleGetOpeningHours(e) {
-    const { getOpeningHours } = require(`${__hooks}/services/settings.js`)
+    const { getOpeningHours } = require(`${__hooks}/services/opening-hours.js`)
 
     const hours = getOpeningHours()
 

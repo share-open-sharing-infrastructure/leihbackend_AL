@@ -139,25 +139,16 @@ function validateProtected(r) {
 }
 
 function validatePickup(r) {
-    const { WEEKDAYS } = require(`${__hooks}/constants.js`)
-    const { getOpeningHours } = require(`${__hooks}/services/settings.js`)
-
-    const OPENING_HOURS = getOpeningHours()
+    const { isWithinOpeningHours } = require(`${__hooks}/services/opening-hours.js`)
 
     const pickupRaw = r.getDateTime('pickup')
     const pickup = new Date(pickupRaw.unix() * 1000)
+
     if (pickupRaw.before(new DateTime())) {
         throw new BadRequestError('Das Abholdatum muss in der Zukunft liegen.')
     }
 
-    if (
-        !OPENING_HOURS.filter((d) => WEEKDAYS[d[0]] === pickup.getUTCDay())
-            .map((d) => [new Date(1970, 0, 1, d[1].split(':')[0], d[1].split(':')[1]), new Date(1970, 0, 1, d[2].split(':')[0], d[2].split(':')[1])])
-            .filter((d) => {
-                const d1 = new Date(1970, 0, 1, pickup.getUTCHours(), pickup.getUTCMinutes())
-                return d1 >= d[0] && d1 < d[1]
-            }).length
-    ) {
+    if (!isWithinOpeningHours(pickup)) {
         throw new BadRequestError('Das Abholdatum liegt außerhalb der Öffnungszeiten.')
     }
 }
@@ -261,7 +252,7 @@ function sendConfirmationMail(r) {
     }))
     const depositTotal = items.reduce((sum, i) => sum + i.deposit, 0)
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_confirmation.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/reservation_confirmation.html', {
         pickup: pickupDateStr,
         customer_name: r.getString('customer_name'),
         customer_iid: r.getInt('customer_iid'),
@@ -301,7 +292,7 @@ function sendPickupReminderMail(r) {
     const customerEmail = r.getString('customer_email')
     const pickupDateStr = fmtDate(r.getDateTime('pickup'))
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/pickup_reminder.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/pickup_reminder.html', {
         items: r.expandedAll('items').map((i) => ({
             iid: i.getInt('iid'),
             name: i.getString('name'),
@@ -335,7 +326,7 @@ function sendCancellationMail(r) {
     const customerEmail = r.getString('customer_email')
     const pickupDateStr = fmtDate(r.getDateTime('pickup'))
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/mail/reservation_cancellation.html`).render({
+    const html = require(`${__hooks}/services/mail.js`).render('mail/reservation_cancellation.html', {
         pickup: pickupDateStr,
     })
 

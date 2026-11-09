@@ -27,7 +27,7 @@ function handleGetCancel(e) {
         $app.logger().error(`Failed to send cancellation mail for reservation ${reservation.id} – ${e}.`)
     }
 
-    const html = $template.loadFiles(`${__hooks}/views/layout.html`, `${__hooks}/views/reservation_cancelled.html`).render({date})
+    const html = require(`${__hooks}/services/mail.js`).render('reservation_cancelled.html', {date})
 
     return e.html(200, html)
 }

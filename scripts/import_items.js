@@ -11,7 +11,7 @@ const POCKETBASE_USER = 'dev@leihlokal-ka.de'
 const POCKETBASE_PASSWORD = 'leihenistdasneuekaufen'  // testing credentials only
 const COUCHDB_DUMP_FILE = '../data/leihlokal_25-12-15_20-00-01.json'
 
-const CATEGORIES = ['Freizeit', 'Garten', 'Haushalt', 'Heimwerken', 'Kinder', 'Küche', 'Sonstige']
+const CATEGORIES = ['Freizeit', 'Garten', 'Haushalt', 'Heimwerken', 'Kinder', 'Küche', 'Sonstige', 'Fahrrad']
 
 function resolveCategories(categoryStr) {
     return categoryStr.split(',')

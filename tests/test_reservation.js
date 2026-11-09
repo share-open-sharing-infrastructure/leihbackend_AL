@@ -72,7 +72,7 @@ describe('Reservations', () => {
             let reservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -103,7 +103,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_email: 'johndoe@leihlokal-ka.de',
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
             assert.doesNotHaveAnyKeys(reservation, ['customer_iid',
@@ -149,7 +149,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_email: customer1.email,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
 
             reservation = await client.collection('reservation').getOne(reservation.id)
@@ -177,7 +177,7 @@ describe('Reservations', () => {
                 customer_iid: 1000,  // john, who has nothing to do with this request
                 customer_email: testEmail,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
 
             reservation = await client.collection('reservation').getOne(reservation.id)
@@ -201,7 +201,7 @@ describe('Reservations', () => {
                 customer_phone: '0123456789',
                 customer_email: testEmail,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -377,7 +377,7 @@ describe('Reservations', () => {
         it('should fail when required customer fields are missing', async () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
             assert.isEmpty(await listInbox(imapClient))
@@ -387,7 +387,7 @@ describe('Reservations', () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item3.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
             assert.isEmpty(await listInbox(imapClient))
@@ -419,14 +419,14 @@ describe('Reservations', () => {
             let reservationPromise = anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             await assert.isRejected(reservationPromise)
 
             let reservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -440,7 +440,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -464,7 +464,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -489,7 +489,7 @@ describe('Reservations', () => {
             let reservation = await anonymousClient.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(reservation)
 
@@ -512,7 +512,7 @@ describe('Reservations', () => {
             let newReservation = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             assert.isNotNull(newReservation)
             assert.isFalse(newReservation.done)
@@ -555,12 +555,12 @@ describe('Reservations', () => {
             let reservation1 = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item1.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
             let reservation2 = await client.collection('reservation').create({
                 customer_iid: 1000,
                 items: [item2.id],
-                pickup: new Date(Date.parse('2026-12-27T13:00:00Z')),
+                pickup: new Date(Date.parse('2026-12-30T18:00:00Z')),
             })
 
             assert.lengthOf(await client.collection('reservation').getFullList(), 3)  // one old one already existed
