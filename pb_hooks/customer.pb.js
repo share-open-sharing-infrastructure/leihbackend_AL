@@ -9,18 +9,35 @@
  Hopefully, there will be a more convenient way to accomplish this in future releases of Pocketbase.
 */
 
-const { handleGetCustomersCsv } = require(`${__hooks}/routes/customer`)
+const { handleGetCustomersCsv, handlePostExists } = require(`${__hooks}/routes/customer`)
 const { handleSyncSubscribersToLoops } = require(`${__hooks}/routes/subscriber`)
 
 // Record hooks
 // ----- //
 
 onRecordCreateExecute((e) => {
+    const { wrapTransactional } = require(`${__hooks}/utils/db.js`)
     const { normalizeLegacySubscriber } = require(`${__hooks}/services/subscriber.js`)
+    const { nextIid } = require(`${__hooks}/services/customer.js`)
+    const { IMPORT_MODE } = require(`${__hooks}/constants.js`)
 
-    e.record.set('email', e.record.getString('email')?.toLowerCase())
-    normalizeLegacySubscriber(e.record)
-    e.next()
+    // Transactional so that reading the highest iid and inserting the row can't be
+    // interleaved with another create. Nested inside the reservation's transaction
+    // during self-service signup, where it is a no-op.
+    wrapTransactional(e, (e) => {
+        e.record.set('email', e.record.getString('email')?.trim().toLowerCase())
+
+        // The member number is allocated here rather than by the client. The
+        // Verwaltung used to compute it with a `sort: '-iid'` query, which races.
+        if (!e.record.getInt('iid')) e.record.set('iid', nextIid(e.app))
+
+        // Anything that didn't declare itself (i.e. the Verwaltung) is staff-entered.
+        // Pre-existing records keep an empty source, meaning "legacy, unknown".
+        if (!e.record.getString('source')) e.record.set('source', IMPORT_MODE ? 'import' : 'staff')
+
+        normalizeLegacySubscriber(e.record)
+        e.next()
+    })
 }, 'customer')
 
 onRecordUpdateExecute((e) => {
@@ -48,10 +65,15 @@ onRecordAfterCreateSuccess((e) => {
         }
     }
 
-    try {
-        notifyNewCustomer(e.record)
-    } catch (err) {
-        $app.logger().error(`Failed to send admin notification for new customer ${e.record.id} – ${err}.`)
+    // A self-registered customer only ever comes into existence alongside a
+    // reservation, and notifyNewReservation already reports both. Skipping the
+    // separate mail keeps the public request from blocking on two extra SMTP sends.
+    if (e.record.getString('source') !== 'self_service') {
+        try {
+            notifyNewCustomer(e.record)
+        } catch (err) {
+            $app.logger().error(`Failed to send admin notification for new customer ${e.record.id} – ${err}.`)
+        }
     }
 
     try {
@@ -81,6 +103,7 @@ onRecordAfterDeleteSuccess((e) => {
 // ----- //
 
 routerAdd('get', '/api/customer/csv', handleGetCustomersCsv, $apis.requireSuperuserAuth())
+routerAdd('post', '/api/customer/exists', handlePostExists)
 routerAdd('post', '/api/subscriber/sync', handleSyncSubscribersToLoops, $apis.requireSuperuserAuth())
 
 // Scheduled jobs

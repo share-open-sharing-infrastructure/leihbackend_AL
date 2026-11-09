@@ -20,6 +20,20 @@ const INACTIVE_MONTHS = $os.getenv('LL_INACTIVE_MONTHS')
 const DELETION_GRACE_PERIOD_DAYS = $os.getenv('LL_DELETION_GRACE_PERIOD_DAYS')
     ? parseInt($os.getenv('LL_DELETION_GRACE_PERIOD_DAYS'))
     : 7
+// Must match the `heard` select field on the customer collection exactly.
+// Shared so that the signup validator and the schema can't drift apart.
+const HEARD_VALUES = [
+    'Internet',
+    'Freunde & Bekannte',
+    'Zeitung / Medien',
+    'Nachbarschaft',
+    'Sonstige',
+]
+
+// Stored on self-registered customers so we can tell which version of the
+// Leihbedingungen / Datenschutzerklärung they actually accepted.
+const CONSENT_VERSION = $os.getenv('LL_CONSENT_VERSION') || 'agb-2026-01'
+
 const NO_WELCOME = $os.getenv('LL_NO_WELCOME') === 'true'
 const NO_DELETE_INACTIVE = $os.getenv('LL_NO_DELETE_INACTIVE') === 'true'
 const LOOPS_API_KEY = $os.getenv('LOOPS_API_KEY') || ''
@@ -30,6 +44,8 @@ const LOG_LEVEL = parseInt($os.getenv('LOG_LEVEL') || '4')  // warning
 module.exports = {
     OPENING_HOURS,
     WEEKDAYS,
+    HEARD_VALUES,
+    CONSENT_VERSION,
     INACTIVE_MONTHS,
     DELETION_GRACE_PERIOD_DAYS,
     NO_WELCOME,

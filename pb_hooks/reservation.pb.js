@@ -15,12 +15,17 @@ const { handleGetCancel, handleGetReservationsCsv } = require(`${__hooks}/routes
 // ----- //
 
 onRecordCreateRequest((e) => {
-    const { validate, autofillCustomer, sendConfirmationMail } = require(`${__hooks}/services/reservation.js`)
+    const { validate, autofillCustomer, assignCustomer, sendConfirmationMail } = require(`${__hooks}/services/reservation.js`)
     const { notifyNewReservation } = require(`${__hooks}/services/notification.js`)
+    const { parseSignup, validateSignup, createFromSignup } = require(`${__hooks}/services/signup.js`)
+    const { findByEmail } = require(`${__hooks}/services/customer.js`)
+    const { wrapTransactional } = require(`${__hooks}/utils/db.js`)
+
+    const isAuthenticated = !!e.requestEvent.auth
 
     // hide record information for non-authenticated users
     // especially hide customer data to prevent leaking personal information by enumerating customer ids
-    if (!e.requestEvent.auth) {
+    if (!isAuthenticated) {
         e.record.hide(
             'customer_iid',
             'customer_name',
@@ -39,10 +44,34 @@ onRecordCreateRequest((e) => {
         )
     }
 
-    autofillCustomer(e.record)
-    validate(e.record, !!e.requestEvent.auth)  // ignore invalid pickup dates for superuser requests
+    autofillCustomer(e.record, isAuthenticated)
 
-    e.next()
+    // Self-service registration: when we couldn't match an existing customer, the
+    // resomaker may send the person's own data so we can register them right away.
+    // Optional – without it this is exactly the previous behaviour.
+    const needsCustomer = !e.record.getInt('customer_iid')
+    const signup = needsCustomer ? parseSignup(e) : null
+    if (signup) validateSignup(signup)  // reject before anything is written
+    if (needsCustomer && !signup) e.record.set('is_new_customer', true)
+
+    validate(e.record, isAuthenticated)  // ignore invalid pickup dates for superuser requests
+
+    // The customer and the reservation must appear together or not at all. Putting
+    // the transaction here works because PocketBase binds the record save to e.app
+    // after this hook returns, and defers both the response and the after-success
+    // hooks (welcome mail, Loops sync) until the commit – so a failed reservation
+    // rolls the customer back and sends no mail.
+    wrapTransactional(e, (e) => {
+        if (signup) {
+            const email = e.record.getString('customer_email')
+            // Re-check inside the transaction: someone may have registered the same
+            // address between autofillCustomer and here.
+            const customer = findByEmail(email, e.app) || createFromSignup(signup, email, e.app)
+            assignCustomer(e.record, customer)
+        }
+
+        e.next()
+    })
 
     const recordId = e.record.get('id')
     try {
@@ -52,7 +81,7 @@ onRecordCreateRequest((e) => {
     }
 
     try {
-        notifyNewReservation(e.record)
+        notifyNewReservation(e.record, !!signup)
     } catch(e) {
         $app.logger().error(`Failed to send admin notification for reservation ${recordId} – ${e}.`)
     }
